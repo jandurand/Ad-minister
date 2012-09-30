@@ -1,0 +1,182 @@
+/* @override http://dbc.dagensskiva.com/wp-content/plugins/ad-minister/ad-minister.css */
+
+a.sort {
+   	color: #d7d7d7;
+}
+
+/**
+***    ADD CONTENT
+**/
+
+input.create, div.text-button-wrapper {
+	width: 97%;
+}
+
+.hide-info {
+	font-size: 11px;
+	display: none;
+}
+
+/* So buttons can be positioned abosolutely */
+div.text-button-wrapper {
+	position: relative;
+}
+div.text-button-wrapper input[type=text] {
+	width: 100%; height: 26px; padding-right: 26px; margin: 0;
+}
+
+/*
+** FORM FIELDS
+*/
+
+.ad-modes-synced-wrapper {
+	margin-top: 4px;
+	margin-bottom: 4px;
+	font-size: 11px;
+}
+
+#ad_schedule_df:hover, #ad_schedule_dt:hover {
+	cursor: pointer;
+}
+
+#ad-schedule-wrapper {
+	position: relative;
+}
+#ad-schedule-from-wrapper {
+	float: left;
+}
+#ad-schedule-to-wrapper {
+	float: left;
+	margin-left: 5px;
+}
+#sched_add_button {
+	position: relative; top: 18px; left: 5px;
+}
+
+div.text-button-wrapper input[type=button] {
+	position: absolute;
+	right: 0px;
+	top: 0px;
+	width: 24px;
+	height: 24px; 
+	background-repeat: no-repeat;
+	background-position: center;
+}
+#ad_media_button {
+	background-image: url('images/image_16x16.gif');
+}
+#ad_audio_button {
+	background-image: url('images/audio.png');
+}
+#ad_link_button {
+	background-image: url('images/file_upload.png');
+}
+
+tr.title {
+	background: #eeeeee;
+}
+label.create {
+	 font-weight: bold;
+}
+
+
+/**
+***    POSITIONS
+**/
+.positionKey {
+	width: 25%;
+}
+.templatePositions thead th {	
+	padding: 10px;
+}
+.templateFunctions {
+	width: 25%;	
+}
+.templatePositionsDescription {
+	width: 25%;
+}
+.templatePositionsActions {
+	width: 25%;
+}
+
+
+/**
+***   The tabs at the top.
+**/
+.tabs
+{
+	margin: 0;
+	padding: 0 0 0 0;
+	list-style: none;
+	overflow: hidden;
+	background: #fff;
+}
+
+.tabs li
+{
+	float: left;
+	white-space: nowrap;
+	margin: 0;
+}
+
+.tabs li a
+{
+	border-bottom: 1px solid #dedede;
+	padding: 6px;
+	display: block;
+	background: #fff;
+	text-decoration: none;
+}
+
+	.tabs li a:hover 
+	{
+		border: 1px solid #bbb;
+		border-bottom: none;
+	}
+
+.tabs li a.tabs-current
+{
+	background: #fff;
+	border: 1px solid #dedede;
+	color: #D54E21;
+	border-bottom: 1px solid #fff;
+}
+
+div th a {
+/*    font-size: 12px; */
+   color: #d7d7d7;
+}
+
+.ad-invisible {}
+tr.ad-visible {background-color: #d9ead3;}
+tr.ad-in-transit {background-color: #cfe2f3;}
+tr.ad-expiring {background-color: #ffe599;}
+tr.ad-almost-expired {background-color: #f4cccc;}
+
+li a.ad-starting {color: #cfe2f3;}
+li a.ad-expiring {color: #ffe599;}
+
+
+.info {
+	font-size: 11px;
+}
+
+span.error {
+	background-color: #FFEBE8;
+	border: 1px solid #C00;
+	border-radius: 3px; -moz-border-radius: 3px;
+	/*(padding: 1px 5px;*/
+	margin-top: 3px;
+	margin-bottom: 3px;
+}
+
+.error {
+	background-color: #ffd7d7;
+}
+
+.wrap > h2 {
+	padding-left: 40px;
+	background-image: url('images/money_icon_32.png');
+	background-repeat: no-repeat;
+	background-position: left center;
+}
