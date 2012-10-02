@@ -1158,19 +1158,12 @@ function administer_send_to_editor($html, $id, $attachment_info) {
 	$attachment = get_post($id); //fetching attachment by $id passed through
 	$mime_type = $attachment->post_mime_type; //getting the mime-type
 	$src = wp_get_attachment_url( $id );
-	
 	switch ( $mime_type ) {
 		// Flash shockwave
 		case 'application/x-shockwave-flash':
 			$html = do_shortcode( "[flashad src='$src' width='306' height='300']" );
 			break;
 	}
-	
-	if ( strpos( $_REQUEST['_wp_http_referer'], 'ad-minister' ) !== false ) {
-		// Add meta information to html to be used in Basic Mode
-		$html .= "<!--source='$src'|mime-type='$mime_type'-->";
-	}
-	
 	return $html;
 }
 add_filter( 'media_send_to_editor', 'administer_send_to_editor', 20, 3 );
@@ -1219,4 +1212,22 @@ function administer_hide_ad( $ad_id ) {
 	$content[$ad_id]['show'] = 'false';
 	administer_update_content( $content ); 
 }
+
+function administer_replace_thickbox_text($translated_text, $text, $domain) { 
+    if ('Insert into Post' == $text) { 
+        $referer = strpos( wp_get_referer(), 'ad-minister' ); 
+        if ( $referer !== FALSE ) { 
+            return __('Select', 'ad-minister' );  
+        }  
+    }  
+    return $translated_text;  
+}
+function administer_media_upload_setup() {  
+    global $pagenow;  
+    if ( 'media-upload.php' == $pagenow || 'async-upload.php' == $pagenow ) {  
+        // Now we'll replace the 'Insert into Post Button' inside Thickbox  
+        add_filter( 'gettext', 'administer_replace_thickbox_text'  , 1, 3 ); 
+    } 
+} 
+add_action( 'admin_init', 'administer_media_upload_setup' );
 ?>

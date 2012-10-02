@@ -116,11 +116,11 @@ function administer_enqueue_scripts ( $hook ) {
 	$content = administer_get_content();
 	$positions = get_post_meta(get_option('administer_post_id'), 'administer_positions', true);
 
-	// Cannot show 'Content' if there ain't any	
-	if ($page == 'ad-minister-content' && (!is_array($content) || empty($content))) $page = 'ad-minister-create';
+	// Cannot show 'Banners' if there aren't any	
+	if ($page == 'ad-minister' && (!is_array($content) || empty($content))) $page = 'ad-minister-banner';
 
-	// Cannot show 'Create' if there are no position
-	if ($page == 'ad-minister-create' && (!is_array($positions) || empty($positions) ) ) $page = 'ad-minister-positions';
+	// Cannot create a new banner if there are no positions
+	if ($page == 'ad-minister-banner' && (!is_array($positions) || empty($positions) ) ) $page = 'ad-minister-positions';
 
 	// If we're not installed, go to the settings for the setup.
 	if (!administer_ok_to_go() && $page != 'ad-minister-help') $page = 'ad-minister-settings';
@@ -155,5 +155,5 @@ function administer_enqueue_scripts ( $hook ) {
 		wp_enqueue_script('ad-minister-content');		
 	}	
 }
-add_action( 'admin_enqueue_scripts', 'administer_enqueue_scripts' );
+add_action( 'admin_enqueue_scripts', 'administer_enqueue_scripts' ); 
 ?>

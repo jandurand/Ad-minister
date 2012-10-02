@@ -160,7 +160,7 @@
 						<td>
 							<div class="text-button-wrapper">
 								<input class="create" name="ad_media_url" id="ad_media_url" type="text" value="<?php echo administer_f($value['ad_media_url']); ?>">
-								<input name="ad_media_button" id="ad_media_button" type="button" title="Select/Upload Image" value="" />
+								<input name="ad_media_button" id="ad_media_button" type="button" title="Select/Upload Banner" value="" />
 							</div>
 							<div class="hide-info" id="ad_media_url_info"></div>
 							<div class="info">(<?php _e('The banner image or animation', 'ad-minister'); ?>)</div>

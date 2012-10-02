@@ -1,5 +1,7 @@
 jQuery(document).ready(function() {
 	var mode, formfield;
+	var media_upload_url = 'media-upload.php?';
+	var media_upload_params = 'tab=library&amp;referer=ad-minister&amp;post_id=0&amp;TB_iframe=true';
 	
 	// Ad-minister 'Create Content' form controls
 	var ad_title = jQuery('#title');
@@ -163,19 +165,19 @@ jQuery(document).ready(function() {
 	 
 	jQuery('#ad_media_button').click(function() {
 		formfield = ad_media_url;
-		tb_show('', 'media-upload.php?ad-minister=true&amp;tab=library&amp;TB_iframe=true');
+		tb_show('Select Banner Image/Animation', media_upload_url + media_upload_params, false);
 		return false;
 	});
 	
 	jQuery('#ad_link_button').click(function() {
 		formfield = ad_link_url;
-		tb_show('', 'media-upload.php?ad-minister=true&amp;tab=library&amp;TB_iframe=true');
+		tb_show('Select Banner Attachment', media_upload_url + media_upload_params, false);
 		return false;
 	});
 	
 	jQuery('#ad_audio_button').click(function() {
 		formfield = ad_audio_url;
-		tb_show('', 'media-upload.php?ad-minister=true&amp;type=audio&amp;tab=library&amp;TB_iframe=true');
+		tb_show('Select Banner Audio', media_upload_url + 'type=audio&amp;' + media_upload_params, false);
 		return false;
 	});
 
@@ -187,14 +189,8 @@ jQuery(document).ready(function() {
 	// Modify information returned form 'Media Uploader' dialog window
 	window.original_send_to_editor = window.send_to_editor; 
 	window.send_to_editor = function(html) {
-		if ((document.URL.indexOf("ad-minister-create") != -1) && (ad_mode.val() == 'mode_basic')) {
-			var matches, src, mime_type;
-			pattern = /<!--source='([^>'"]*)'|mime-type='([^>'"]*)'-->$/i;
-			matches = html.match(pattern);
-			if (!(matches == null)) {
-				src = matches[1];
-				mime_type = matches[2];			
-			}
+		if ((document.URL.indexOf("ad-minister") != -1) && (ad_mode.val() == 'mode_basic')) {
+			var src = get_media_src_url(html);
 			formfield.val(src).change().focus().select();
 			tb_remove();
 		}
@@ -270,100 +266,76 @@ jQuery(document).ready(function() {
 		return ((+number) + (+diff));
 	}
 	
+	// Gets the media src from the given html
+	function get_media_src_url(html) {
+		var pattern, value;
+		
+		// Try searching for an image
+		pattern = /<img[^>]+src=['"]([^\s'">]*)['"]/i;
+		value = html.match(pattern);
+		if (value != null) return value[1];
+			
+		// Try searching for a shockwave flash animation
+		pattern = /<object[^>]+<param\s+name=['"]src['"]\s+value=['"]([^\s'">]*)['"]/i;
+		value = html.match(pattern);
+		if (value != null) return value[1];
+			
+		pattern = /<embed[^>]+src=['"]([^\s'">]*)['"]/i;
+		value = html.match(pattern);
+		if (value != null) return value[1];
+				
+		pattern = /[\[<][^\]>]+src=['"]([^\s'"\]>]*)['"]/i;
+		value = html.match(pattern);
+		if (value != null) return value[1];
+		
+		pattern = /[\[<][^\]>]+file=['"]([^\s'"\]>]*)['"]/i;
+		value = html.match(pattern);
+		if (value != null) return value[1];
+		
+		pattern = /[\[<][^\]>]+url=['"]([^\s'"\]>]*)['"]/i;
+		value = html.match(pattern);
+		if (value != null) return value[1];
+		 
+		return '';
+	}
+	
+	function get_media_title(html) {
+		// Get title if present
+		pattern = /[\[<][^\]>]+title=['"]([^\s'"\]>]*)['"]/i;
+		value = html.match(pattern);
+		if (value != null) {
+			return value[1];
+		}
+		return '';
+	}
+	
+	function get_media_width(html) {
+		var pattern, width, widths = [306, 474, 642, 978];
+		pattern = /[\[<][^\]>]+width=['"]([^\s'"\]>]*)['"]/i;
+		width = html.match(pattern);
+		width = (width != null) ? getClosestNumber(width[1], widths) : '306';
+	}
+	
+	function get_media_height(html) {
+		var pattern, height, heights = [100, 140, 270, 300, 560];
+		pattern = /[\[<][^\]>]+height=['"]([^\s'"\]>]*)['"]/i;
+		height = html.match(pattern);
+		height = (height != null) ? getClosestNumber(height[1], heights) : '300';
+	}
+	
 	// Fill in basic mode controls from advanced mode html
 	function complete_basic_from_advanced() {
 		if (jQuery.trim(ad_html.val()) == '') return false;
-		
 		var html = ad_html.val(), value, width, height, pattern;
-		var widths = [306, 474, 642, 978];
-		var heights = [100, 140, 270, 300, 560];
 		
 		/* Get Media URL first */
-		
-		// Try searching for an image
-		pattern = /<img[^>]*src=['"]([^\s'">]*)['"]/i;
-		value = html.match(pattern);
-		if (value != null) {
-			
-			// Get Media URL
-			ad_media_url.val(value[1]).change();
-			
-			// Get image dimensions
-			pattern = /<img[^>]+width=['"]([^\s'">]*)['"]/i;
-			width = html.match(pattern);
-			width = (width != null) ? getClosestNumber(width[1], widths) : '';
-			pattern = /<img[^>]+height=['"]([^\s'">]*)['"]/i;
-			height = html.match(pattern);
-			height = (height != null) ? getClosestNumber(height[1], heights) : '';
-			if (width != '' && height != '') {
-				ad_size.val(width + 'x' + height);
-			}
-			
-			// Get image title if present
-			pattern = /<img[^>]+title=['"]([^'">]*)['"]/i;
-			value = html.match(pattern);
-			if (value != null) {
-				ad_hint.val(value[1]);
-			}
-		}
-		else {
-			// Try searching for a shockwave flash animation
-			pattern = /<object.*<param\s+name=['"]src['"]\s+value=['"]([^\s'">]*)['"]/i;
-			value = html.match(pattern);
-			if (value != null) {
-				// Get Media URL
-				ad_media_url.val(value[1]).change();
-				
-				// Get flash animation dimensions
-				pattern = /<object[^>]+width=['"]([^\s'">]*)['"]/i;
-				width = html.match(pattern);
-				width = (width != null) ? getClosestNumber(width[1], widths) : '';
-				pattern = /<object[^>]+height=['"]([^\s'">]*)['"]/i;
-				height = html.match(pattern);
-				height = (height != null) ? getClosestNumber(height[1], heights) : '';
-				if (width != '' && height != '') {
-					ad_size.val(width + 'x' + height);
-				}
-			}
-			else {
-				pattern = /<embed[^>]+src=['"]([^\s'">]*)['"]/i;
-				value = html.match(pattern);
-				if (value != null) {
-					// Get Media URL
-					ad_media_url.val(value[1]).change();
-					
-					// Get flash animation dimensions
-					pattern = /<embed[^>]+width=['"]([^\s'">]*)['"]/i;
-					width = html.match(pattern);
-					width = (width != null) ? getClosestNumber(width[1], widths) : '';
-					pattern = /<embed[^>]+height=['"]([^\s'">]*)['"]/i;
-					height = html.match(pattern);
-					height = (height != null) ? getClosestNumber(height[1], heights) : '';
-					if (width != '' && height != '') {
-						ad_size.val(width + 'x' + height);
-					}
-				}
-				else {
-					pattern = /\[flashad[^\]]+src=['"]([^\s'"\]]*)['"]/i;
-					value = html.match(pattern);
-					if (value != null) {
-						// Get Media URL
-						ad_media_url.val(value[1]).change();
-						
-						// Get flash animation dimensions
-						pattern = /\[flashad[^\]]+width=['"]([^\s'"\]]*)['"]/i;
-						value = html.match(pattern);
-						width = (width != null) ? getClosestNumber(width[1], widths) : '';
-						pattern = /\[flashad[^\]]+height=['"]([^\s'"\]]*)['"]/i;
-						height = html.match(pattern);
-						height = (height != null) ? getClosestNumber(height[1], heights) : '';
-						if (width != '' && height != '') {
-							ad_size.val(width + 'x' + height);
-						}
-					}
-				}
-			}
-		}
+		value = get_media_src_url(html);
+		if (value != '') ad_media_url.val(value);
+		width = get_media_width(html);
+		height = get_media_height(html);
+		if (width != '' && height != '') ad_size.val(width + 'x' + height);
+		value = get_media_title(html);	
+		if (value != '') ad_hint.val(value);
 		
 		/* Get Link URL */
 		pattern = /<a[^>]+href=['"]([^\s'"]*)['"]/i;
