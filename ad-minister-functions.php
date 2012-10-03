@@ -69,32 +69,25 @@ function administer_get_position_template ($position = array(), $nbr = 0) {
 **
 **   Generate the select list for the defined positions
 */
-function administer_position_select ($nbr = '', $value = '') {
-
-	if ($value == '') $value = '-';
-
-	$html = '<select name="position" id ="ad_position_edit_' . $nbr . '">';
-
-	$got_selected = false;
-	
+function administer_position_select ( $ad_positions = array() ) {
+	// Convert ad_positions to array
+	if ( !is_array( $ad_positions ) ) {
+		$ad_positions = ( !$ad_positions || $ad_positions == '-') ?	$ad_positions = array() : $ad_positions = array( $ad_positions );
+	}
+	$html = '<select multiple="multiple" name="position[]" id="ad_position' . $nbr . '">';
 	$positions = get_post_meta(get_option('administer_post_id'), 'administer_positions', true);	
 	if (!is_array($positions)) $positions = array();
 	$position_keys = array_keys($positions); 
-	sort($position_keys);
-	
+	sort($position_keys);	
 	foreach ($position_keys as $key) {
-		// $position_key = p2m_meta('ad_position_' . $nbr);
-		if ($key == $value) {
-			$selected = ' selected="selected"';
-			$got_selected = true;
-		} else $selected = '';
+		$selected = ( in_array( $key, $ad_positions ) ) ? ' selected="selected"' : '';
 		$description = ($positions[$key]['description']) ? ' (' . $positions[$key]['description'] . ')' : '';
-		$html .= '<option value="' . $positions[$key]['position'] . '"' . $selected .'>' . $positions[$key]['position'] . $description . '</option>';
+		$html .= '<option value="' . $positions[$key]['position'] . '"' . $selected .'> ' . $positions[$key]['position'] . $description . '</option>';
 	}
 
 	// If nothing got selected, then churn out a blank value for orphans.
-	if ($value == '-') $html .= '<option value="-" selected="selected">(' . __('None', 'ad-minister') . ')</option>';
-	if (!$value || $value != '-') $html .= '<option value="-">(' . __('None', 'ad-minister') . ')</option>';
+	//if ($value == '-') $html .= '<option value="-" selected="selected">(' . __('None', 'ad-minister') . ')</option>';
+	//if (!$value || $value != '-') $html .= '<option value="-">(' . __('None', 'ad-minister') . ')</option>';
 
 	$html .= '</select>';
 	return $html;
@@ -595,7 +588,8 @@ function administer_display_position( $pos ) {
 	$ad_ids = array();
 	$ad_weights = array();
 	foreach ( $content as $ad_id => $ad ) {
-		if ( !( $ad['position'] == $pos and administer_is_visible( $ad ) ) ) continue;
+		$ad['position'] = !is_array( $ad['position'] ) ? array( $ad['position'] ) : $ad['position']; 
+		if ( !( in_array( $pos, $ad['position'] ) and administer_is_visible( $ad ) ) ) continue;
 		// Consider ad for display if its in this position and visible	
 		$ad_ids[] = $ad_id;
 		$ad_weights[] = $ad['weight'] ? $ad['weight'] : 1;

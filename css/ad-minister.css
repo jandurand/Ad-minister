@@ -63,13 +63,13 @@ div.text-button-wrapper input[type=button] {
 	background-position: center;
 }
 #ad_media_button {
-	background-image: url('images/image_16x16.gif');
+	background-image: url('../images/image_16x16.gif');
 }
 #ad_audio_button {
-	background-image: url('images/audio.png');
+	background-image: url('../images/audio.png');
 }
 #ad_link_button {
-	background-image: url('images/file_upload.png');
+	background-image: url('../images/file_upload.png');
 }
 
 tr.title {
@@ -176,7 +176,7 @@ span.error {
 
 .wrap > h2 {
 	padding-left: 40px;
-	background-image: url('images/money_icon_32.png');
+	background-image: url('../images/money_icon_32.png');
 	background-repeat: no-repeat;
 	background-position: left center;
 }

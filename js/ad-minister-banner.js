@@ -19,7 +19,20 @@ jQuery(document).ready(function() {
 	var ad_schedule_df_info = jQuery('#ad_schedule_df_info');
 	var ad_schedule_dt = jQuery('#ad_schedule_dt');
 	var ad_schedule_dt_info = jQuery('#ad_schedule_dt_info');
-	var ad_position = jQuery('select#ad_position_edit_0');
+	var ad_position = jQuery('select#ad_position').multiselect({
+		selectedText: '# positions selected',
+		noneSelectedText: 'Select banner positions',
+      	selectedList: 1,
+		position: {
+			my: 'left bottom',
+			at: 'left top',
+			collision: 'flip'
+		}
+	}).multiselectfilter({
+		width: '150',
+		placeholder: "Enter position",
+		autoReset: true
+	});
 	var ad_position_info = jQuery('#ad_position_info');
 	var sched_add_button = jQuery('#sched_add_button');
 	var	ad_mode = jQuery('#ad_mode');

@@ -272,7 +272,7 @@
 							<label class="create" for="ad_position_edit_"><?php _e('Position', 'ad-minister'); ?></label>
 						</td>
 						<td>
-							<?php echo administer_position_select(0, $value['position']); ?>
+							<?php echo administer_position_select($value['position']); ?>
 							<div class="hide-info" id="ad_position_info"></div>
 						</td>
 					</tr>

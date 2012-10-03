@@ -88,7 +88,7 @@ add_action('administer_stats', 'administer_template_stats');
 function administer_enqueue_styles () {
 	if (ereg('page\=ad\-minister', $_SERVER['REQUEST_URI'])) {
 		// Enqueue Ad-minister style sheet 	
-		wp_enqueue_style( 'ad-minister', plugins_url( 'ad-minister.css', __FILE__ ) );
+		wp_enqueue_style( 'ad-minister', plugins_url( 'css/ad-minister.css', __FILE__ ) );
 	}
 }
 add_action( 'admin_enqueue_scripts', 'administer_enqueue_styles', 20 );
@@ -140,20 +140,25 @@ function administer_enqueue_scripts ( $hook ) {
 		wp_enqueue_script('controls');
 		
 		// Enqueue jquery ui
-		wp_register_script( 'jquery-ui', get_stylesheet_directory_uri() . '/js/jquery-ui-1.8.20.custom.min.js', array( 'jquery' ) );
-		wp_enqueue_script( 'jquery-ui' );
+		wp_enqueue_script( 'jquery-ui', get_stylesheet_directory_uri() . '/js/jquery-ui-1.8.24.custom.min.js', array( 'jquery' ) );
 			
 		// Enqueue style sheet for date picker fields
-		wp_enqueue_style( 'ui-lightness', get_stylesheet_directory_uri() . '/css/ui-lightness/jquery-ui-1.8.18.custom.css' );
-
+		wp_enqueue_style( 'ui-lightness', get_stylesheet_directory_uri() . '/css/ui-lightness/jquery-ui-1.8.24.custom.css' );
+		
+		// Enqueue jquery multiselect plugin
+		wp_enqueue_script( 'jquery-multiselect', plugins_url('js/jquery.multiselect.min.js', __FILE__), array( 'jquery', 'jquery-ui' ) );
+		wp_enqueue_style( 'jquery-multiselect', plugins_url('css/jquery.multiselect.css', __FILE__) );
+		wp_enqueue_script( 'jquery-multiselect-filter', plugins_url('js/jquery.multiselect.filter.min.js', __FILE__), array( 'jquery-multiselect' ) );
+		wp_enqueue_style( 'jquery-multiselect-filter', plugins_url('css/jquery.multiselect.filter.css', __FILE__) );
+		
+		
 		// Enqueue script to use media uploader and provide form validation
-		wp_register_script('ad-minister-banner', plugins_url('js/ad-minister-banner.js', __FILE__), array('jquery', 'media-upload', 'thickbox', 'editor'));
-		wp_enqueue_script('ad-minister-banner');		
+		wp_enqueue_script('ad-minister-banner', plugins_url('js/ad-minister-banner.js', __FILE__), array('jquery', 'jquery-multiselect', 'media-upload', 'thickbox', 'editor'));
 	}
 	else if ( $page == 'ad-minister' ) {
 		wp_register_script('ad-minister-content', plugins_url( 'js/ad-minister-content.js', __FILE__ ), array('jquery'));
 		wp_enqueue_script('ad-minister-content');		
 	}	
 }
-add_action( 'admin_enqueue_scripts', 'administer_enqueue_scripts' ); 
+add_action( 'admin_enqueue_scripts', 'administer_enqueue_scripts', 20 ); 
 ?>
