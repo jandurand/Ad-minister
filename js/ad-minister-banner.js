@@ -20,6 +20,7 @@ jQuery(document).ready(function() {
 	var ad_schedule_dt = jQuery('#ad_schedule_dt');
 	var ad_schedule_dt_info = jQuery('#ad_schedule_dt_info');
 	var ad_position = jQuery('select#ad_position').multiselect({
+		minWidth: 700,
 		selectedText: '# positions selected',
 		noneSelectedText: 'Select banner positions',
       	selectedList: 1,
@@ -40,7 +41,6 @@ jQuery(document).ready(function() {
 	var ad_modes_synced = jQuery('#ad_modes_synced');
 	var ad_html = jQuery('textarea#content');
 	var ad_preview = jQuery('#ad-preview');
-	var preview_button = jQuery('#preview_button');
 	
 	// Give focus to title field
 	ad_title.focus();
@@ -85,7 +85,7 @@ jQuery(document).ready(function() {
 
 	// Validates 'Position' field
 	function validate_ad_position() {
-		if (ad_position.val() == "-") {
+		if (ad_position.val() == null) {
       		ad_position.focus();
 			ad_position.addClass("error"); // adding css error class to the control
 			ad_position_info.text("Please select a banner position"); 
@@ -158,7 +158,7 @@ jQuery(document).ready(function() {
 	ad_schedule_dt.change(validate_ad_schedule_dt);
 	
 	// Validate fields on form submission
-	jQuery('#save').click(function() {
+	jQuery('#save').click(function(e) {
 		var validated = true;
 		
 		// Long-circuit evaluation
@@ -167,7 +167,14 @@ jQuery(document).ready(function() {
 			validated = validate_ad_media_url() ? validated : false;
 		}
 		validated = validate_ad_title() ? validated: false;
-		return validated;
+			
+		if (validated) {
+			var action_url = jQuery('form#post').attr('action');
+			jQuery('form#post').attr('action', action_url + '&action=edit&id=' + jQuery('input#id').val()); 
+		}
+		else {
+			e.preventDefault();
+		}
 	});
 	
 	jQuery('#delete').click(function(e) {
@@ -243,10 +250,6 @@ jQuery(document).ready(function() {
 	        // Make the tab active
 	        $active.addClass('tabs-current');
 	        $content.show();
-			
-			if (ad_mode.val() == 'mode_basic') {
-				
-			}
 			
 			// Take certain actions depending on the mode selected
 			if (ad_modes_synced.attr('checked')) {

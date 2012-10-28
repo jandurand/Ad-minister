@@ -4,9 +4,11 @@ jQuery(document).ready(function() {
 	var select_all = jQuery('#select_all');
 	
 	apply_button.click(function(e) {
-		if (bulk_actions.val() == 'delete') {
-			if (!confirm('Are you sure you want to delete this content?')) 
-				e.preventDefault();
+		if (bulk_actions.val() == '') {	
+			e.preventDefault();
+		}
+		if ((bulk_actions.val() == 'delete') && !confirm('Are you sure you want to delete this content?')) {
+			e.preventDefault();
 		}
 	});
 	

@@ -74,7 +74,7 @@ function administer_position_select ( $ad_positions = array() ) {
 	if ( !is_array( $ad_positions ) ) {
 		$ad_positions = ( !$ad_positions || $ad_positions == '-') ?	$ad_positions = array() : $ad_positions = array( $ad_positions );
 	}
-	$html = '<select multiple="multiple" name="position[]" id="ad_position' . $nbr . '">';
+	$html = '<select multiple="multiple" name="position[]" id="ad_position">';
 	$positions = get_post_meta(get_option('administer_post_id'), 'administer_positions', true);	
 	if (!is_array($positions)) $positions = array();
 	$position_keys = array_keys($positions); 
@@ -84,22 +84,17 @@ function administer_position_select ( $ad_positions = array() ) {
 		$description = ($positions[$key]['description']) ? ' (' . $positions[$key]['description'] . ')' : '';
 		$html .= '<option value="' . $positions[$key]['position'] . '"' . $selected .'> ' . $positions[$key]['position'] . $description . '</option>';
 	}
-
-	// If nothing got selected, then churn out a blank value for orphans.
-	//if ($value == '-') $html .= '<option value="-" selected="selected">(' . __('None', 'ad-minister') . ')</option>';
-	//if (!$value || $value != '-') $html .= '<option value="-">(' . __('None', 'ad-minister') . ')</option>';
-
 	$html .= '</select>';
 	return $html;
 }
 
 /*
-**   p2m_nbr_to_save()
+**   administer_get_available_id()
 **
 **   Finds the highest number from zero that is not currently
 **   some content.
 */
-function administer_nbr_to_save($what = 'content') {
+function administer_get_available_id() {
 
 	$content = get_post_meta(get_option('administer_post_id'), 'administer_content', true);
 
@@ -189,10 +184,9 @@ function administer_content_age($schedule) {
 			$end = strtotime( $end_str );
 		}
 		
-		$day_in_secs = 86400; // 24 hours is 86400 seconds
 		$age[] = array( 
-		'start' => ( $start - $now ) / $day_in_secs, 
-		'end' => ( $end - $now ) / $day_in_secs 
+		'start' => ( $start - $now ), 
+		'end' => ( $end - $now ) 
 		);
 
 	}
@@ -200,6 +194,48 @@ function administer_content_age($schedule) {
 	return $age;
 }
 
+function administer_get_time_left_string( $time_left ) {
+	if ( $time_left === FALSE ) return '-';
+	if ( $time_left == 0 ) return 'Ended';
+	
+	$day_in_secs = 86400; // 86400 seconds in a day
+	$hour_in_secs = 3600; // 3600 seconds in an hour
+	$units = __( 'days', 'ad-minister' );
+	
+	if ( abs( $time_left ) <= $day_in_secs ) {
+		$units = __( 'hours', 'ad-minister' );
+		$time_left /= $hour_in_secs;
+	}
+	else {
+		$time_left /= $day_in_secs;
+	}
+	
+	if ( $time_left < 0 )
+		return __( 'Starts in', 'ad-minister' ) . ' ' . sprintf( '%.1f', abs( $time_left ) ) . ' ' . $units;
+	else
+		return __( 'Ends in', 'ad-minister' ) . ' ' . sprintf( '%.1f', $time_left ) . ' ' . $units;
+}
+
+function administer_get_time_left( $ad_schedule ) {
+	if ( empty( $ad_schedule ) ) return FALSE;
+	
+	// Get the time left based on schedule
+	$time_left = 0;
+	$ages = administer_content_age( $ad_schedule );
+	foreach ( $ages as $age ) {
+		if ( $age['start'] == $age['end'] ) continue;
+		
+		if ( $age['start'] > 0 ) {
+			$time_left = -( $age['start'] );
+			return $time_left;
+		}
+		else if ( $age['end'] > 0 ) {
+			$time_left = $age['end'];
+			return $time_left;
+		}
+	}
+	return $time_left;	
+}
 
 /*
 **  administer_dashboard_widget ()
@@ -216,10 +252,9 @@ function administer_dashboard_widget () {
 		$content = array(); 
 
 	$url = administer_get_page_url();
-	$period = get_option('administer_dashboard_period');
+	$period = get_option('administer_dashboard_period') * 86400;
 
-	$li_ends = '';
-	$li_starts = '';
+	$li_time_left = '';
 	$li_impressions = '';
 	$li_clicks = '';
 
@@ -242,32 +277,21 @@ function administer_dashboard_widget () {
 		}
 		
 		// Format start/end times
-		$ages = administer_content_age($con['scheduele']);
-		foreach ($ages as $age) {
-			if ( $age['start'] && $age['start'] >= 0 && $age['start'] < $period ) {
-				$link_url .= $url . '&tab=upload&action=edit&id=' . $con['id'];
-				$link_style = 'style="color: #00AA00;"';
-				$li_starts .= '<li><a ' . $link_style . ' href="' . $link_url . '">' . $con['title'] . '</a>';
-				$li_starts .= ' ' . __('starts in', 'ad-minister') . ' ' . sprintf( "%.1f", $age['start'] ) . ' ' . __('days', 'ad-minister') . '.</li>';
-				break;
-			}
-			else if ( $age['end'] && $age['end'] >= 0 && $age['end'] < $period ) {
-				$link_url = $url . '&tab=upload&action=edit&id=' . $con['id']; 
-				$link_style = 'style="color: #AA0000;"';
-				$li_ends .= '<li><a ' . $link_style . ' href="' . $link_url . '">' . $con['title'] . '</a>';
-				$li_ends .= ' ' . __('expires in', 'ad-minister') . ' ' . sprintf( "%.1f", $age['end'] ) . ' days.</li>';
-				break;
-			}		
+		$time_left = administer_get_time_left( $con['scheduele'] );
+		$time_left_string = administer_get_time_left_string( $time_left );
+		if ( $time_left ) {
+			$link_url .= $url . '&tab=upload&action=edit&id=' . $con['id'];
+			$link_style = $time_left < 0 ? 'style="color: #00AA00;"' : 'style="color: #AA0000;"';
+			$li_time_left .= '<li><a ' . $link_style . ' href="' . $link_url . '">' . $con['title'] . '</a> - ' . $time_left_string . '</li>';
 		}
 	}
 
 	// Display dashboard widget 
-	if ($li_starts || $li_ends) {
+	if ( $li_time_left || $li_impressions || $li_clicks ) {
 		echo '<p><ul>';
-		if ($li_impressions) echo $li_impressions;
-		if ($li_clicks) echo $li_clicks;
-		if ($li_ends) echo $li_ends;
-		if ($li_starts) echo $li_starts;
+		echo $li_impressions;
+		echo $li_clicks;
+		echo $li_time_left;
 		echo '</ul></p>';
 	}
 	else {
@@ -453,7 +477,7 @@ function administer_template_action ($args) {
 		
 		// Save to a Custom Field
 		if (!add_post_meta($post_id, 'administer_positions', $positions, true)) 
-				update_post_meta($post_id, 'administer_positions', $positions);		
+			update_post_meta($post_id, 'administer_positions', $positions);		
 	}
 
 	administer_display_position($args['position']);
@@ -471,30 +495,18 @@ function administer_is_visible($ad) {
 
 	// Is the content schedueled to show?
 	$valid = false;
-	$ages = administer_content_age($ad['scheduele']);
-
-	// Has the scheduele expired, or hasn't it started?
-	foreach ($ages as $age) {
 	
-		// No scheduele, so content always valid
-		if (!$age['start'] && !$age['end']) $valid = true;
-
-		// Check that we're in the validity period
-		if ($age['start'] <= 0 && $age['end'] > 0) $valid = true;
-	}
+	// Does ad have a schedule or has the schedule expired
+	$time_left = administer_get_time_left( $ad['scheduele'] );
+	if ( ( $time_left === FALSE ) || ( $time_left > 0 ) ) $valid = true;
 
 	// Have we reached maximum impressions or clicks?
 	if (get_option('administer_statistics') == 'true') {
+		if ( $ad['impressions'] )
+			if ( administer_get_impressions( $ad['id'] ) >= $ad['impressions'] ) $valid = false;
 
-		//$stats = get_post_meta(get_option('administer_post_id'), 'administer_stats', true);		
-		//if (!is_array($stats)) $stats = array();
-		$stats = administer_get_stats();
-		
-		if ($ad['impressions'])
-			if ($stats[$ad['id']]['i'] >= $ad['impressions']) $valid = false;
-
-		if ($ad['clicks'])
-			if ($stats[$ad['id']]['c'] >= $ad['clicks']) $valid = false;
+		if ( $ad['clicks'] )
+			if ( administer_get_clicks( $ad['id'] ) >= $ad['clicks'] ) $valid = false;
 	}
 	
 	return $valid;
@@ -652,11 +664,11 @@ function administer_display_position( $pos ) {
 		
 		<script type="text/javascript">
 		$('<?php echo "#ad-{$ad['id']}"; ?>').ready(function() {
-			_gaq = _gaq || [];
+			var _gaq = _gaq || [];
 			_gaq.push(['_trackEvent', 'Advertisements', 'View', '<?php echo $ad['title']; ?>']);
 		});
 		$('<?php echo "#ad-{$ad['id']} a"; ?>').click(function() {
-			_gaq = _gaq || [];
+			var _gaq = _gaq || [];
 			_gaq.push(['_trackEvent', 'Advertisements', 'Click', '<?php echo $ad['title']; ?>']);
 		});
 		</script>
@@ -672,6 +684,7 @@ function administer_display_position( $pos ) {
 **	Note that an impression was made.
 */
 function administer_register_impression($id) {
+	if ( is_admin() ) return;
 	global $administer_stats;
 	global $current_user;
 	get_currentuserinfo();
@@ -685,11 +698,11 @@ function administer_register_impression($id) {
 }
 
 /*
-**	administer_init_impressions ( )
+**	administer_init_stats ( )
 **
 **	Set up global stat variable.
 */
-function administer_init_impressions() {
+function administer_init_stats() {
 	global $administer_stats;
 	$administer_stats = administer_get_stats();
 }
@@ -719,8 +732,6 @@ function administer_register_click( $id ) {
 **   Register clicks.
 */
 function administer_do_redirect() {
- 	global $administer_stats;
- 	
 	if ($qs = $_SERVER['REQUEST_URI']) {
 		$pos = strpos($qs, 'administer_redirect');
 		if ( !( false === $pos ) ) { 
@@ -737,7 +748,7 @@ function administer_do_redirect() {
 			// Save click!
 			if ( get_option( 'administer_statistics') == 'true' ) { 
 				administer_register_click( $id );
-				administer_update_stats( $administer_stats, __FILE__, __FUNCTION__, __LINE__ );
+				administer_save_stats();
 				//update_post_meta( get_option( 'administer_post_id'), 'administer_stats', $administer_stats );
 			}
 
@@ -751,34 +762,32 @@ function administer_do_redirect() {
 }
 
 /*
-**  administer_save_impressions ( )
+**  administer_save_stats ( )
 **
 **  Save the clicks and impressions to db. I think there is an issue regarding the 
 **	effectivness of storing this data in a Custom Field. In the future a separate db might be more
 **	appropriate.
 */
-function administer_save_impressions () {
-	global $administer_stats;
-	// Save to a Custom Field
-	if (!is_admin()) {
-		administer_update_stats( $administer_stats );
-	}
+function administer_save_stats( $stats = NULL ) {
+	if ( is_admin() ) return;
+	if ( !$stats ) $stats = administer_get_stats(); 
+	administer_set_stats( $stats, __FILE__, __FUNCTION__, __LINE__ );
 }
 
 /*
-**  administer_save_stats ( )
+**  administer_set_stats ( )
 **
 **  Save the clicks and impressions to db.
 */
-function administer_save_stats ( $stats, $filename = __LINE__, $function = __FUNCTION__, $line = __LINE__ ) {
+function administer_set_stats ( $stats, $filename = __FILE__, $function = __FUNCTION__, $line = __LINE__ ) {
 	// Save to a Custom Field
-	if ( !is_admin() ) { 
-		if ( empty( $stats ) ) {
-			administer_log_stats_reset( $filename, $function, $line );
-		}
-		delete_post_meta(get_option('administer_post_id'), 'administer_stats');
-		update_post_meta(get_option('administer_post_id'), 'administer_stats', $stats);
+	if ( empty( $stats ) ) {
+		administer_log_stats_reset( $filename, $function, $line );
 	}
+
+	global $administer_stats;	
+	$administer_stats = $stats;
+	update_post_meta( get_option( 'administer_post_id' ), 'administer_stats', $administer_stats );
 }
 
 /*
@@ -787,7 +796,8 @@ function administer_save_stats ( $stats, $filename = __LINE__, $function = __FUN
 **  Formatting wrapper function
 */
 function administer_f($text) {
-	return wptexturize(stripslashes($text));
+	//return wptexturize(stripslashes($text));
+	return stripslashes($text);
 }
 
 /*
@@ -815,223 +825,6 @@ function administer_tracker_url ($id) {
 }
 
 /*
-**  administer_stats ( )
-**
-**  Generate the statistics table, both for template use and in the admin.
-*/
-function administer_stats ($options = array()) {
-
-	if (empty($options)) {
-		$ids = array();
-		$columns = array('selected', 'id', 'title', 'position', 'visible', 'time', 'impressions', 'clicks');
-	} else {
-		$ids = $options['ids'];
-		$columns = $options['columns'];
-	}
-	
-	// Check Bulk actions
-	if ( $_POST['bulk_actions'] == 'delete' ) {
-		$selected_ads = $_POST['selected_ads'] ? $_POST['selected_ads'] : array();
-		$ad_count = count( $selected_ads );
-		
-		// Delete selected ad content
-		foreach ( $selected_ads as $ad_id ) {
-			administer_delete_ad( $ad_id );
-		}
-			
-		// Notify 
-		echo '<div id="message" class="updated fade"><p><strong>' . __( $ad_count . ( $ad_count == 1 ? ' Ad ' : ' Ads ' ) . 'Deleted.', 'ad-minister') . '</strong></p></div>';
-	}
-	
-	$contents = administer_get_content();
-	$positions = get_post_meta(get_option('administer_post_id'), 'administer_positions', true);
-	$stats = administer_get_stats();
-	
-	if (is_admin()) 
-		$link = administer_get_page_url();
-	else 
-		$link = get_page_link() . '?administer=view';
-	
-	$link = administer_get_page_url( "create" );	
-	$table = array();
-	foreach ( array_keys( $contents ) as $i ) {
-
-		$ad = $contents[$i];
-
-		if ( !empty( $ids ) && !in_array( $ad['id'], $ids ) ) continue;
-	
-		$table['title'][$i] = administer_f($ad['title']);
-		$table['title_link'][$i] = $link . '&action=edit&id=' . $ad['id'];
-		$table['position'][$i] = ($pos = administer_f($ad['position'])) ? $pos : '-';
-
-		// Check visibility
-		$is_visible = administer_is_visible($ad);
-
-		// Set orphaned content as invisible
-		if ($table['position'][$i] == '-') $is_visible = false;
-
-		// Get the time left based on schedule, if present
-		$ages = administer_content_age($ad['scheduele']);
-		$time = '-';
-		$time_left = -1;
-		foreach ($ages as $age) {
-			if ( $age['start'] == $age['end'] ) continue;
-			
-			if ( $age['start'] > 0 ) {
-				$time_left = $age['start'];
-				$time = __('Starts in', 'ad-minister') . ' ' . sprintf( '%.1f', $time_left ) . ' ' . __('days', 'ad-minister');
-			}
-			else {
-				$time_left = $age['end'];
-				$time = __('Ends in', 'ad-minister') . ' ' . sprintf( '%.1f', $time_left ) . ' ' . __('days', 'ad-minister');
-			}
-			
-			if ( $age['end'] >= 0 ) break;
-
-			$time = 'Ended';
-		}
-	
-		// Calculate and format the fractional weight, given as a percentage
-		$total_weight = 0;
-		foreach ($contents as $content)
-			if ($ad['position'] == $content['position']) 
-				if (administer_is_visible($content))
-					$total_weight += ($content['weight']) ? $content['weight'] : 1;		
-		$weight = ($ad['weight']) ? $ad['weight'] : 1;
-		$weight = (administer_is_visible($ad)) ? 100*$weight/$total_weight : '';
-		$table['weight'][$i] = ($weight > 0 && $weight < 100) ? '(' . round($weight, 1) . '%)' : '';
-		
-		// Don't show percentages for orphans
-		if ($table['position'][$i] == '-') $table['weight'][$i] = '';
-
-		// Format impressions
-		$impressions = ($stats[$ad['id']]['i']) ? $stats[$ad['id']]['i'] : '0';
-		$impressions = ($ad['impressions']) ? $impressions . ' of ' . $ad['impressions'] : $impressions;
-
-		// Format clicks
-		$clicks = ($stats[$ad['id']]['c']) ? $stats[$ad['id']]['c'] : '0';
-		$clicks = ($ad['clicks']) ? $clicks . ' of ' . $ad['clicks'] : $clicks;
-
-		$table['clicks'][$i]      = $clicks;
-		$table['impressions'][$i] = $impressions;
-		$table['time'][$i]        = $time;
-		$table['visible'][$i]     = ($is_visible) ? __('Yes', 'ad-minister') : __('No', 'ad-minister');
-		$table['id'][$i] = $ad['id'];
-		$table['row-class'][$i]   = ($is_visible) ? 'ad-visible' : 'ad-invisible';
-		
-		if ( $time_left > 0 ) {
-			if ( $is_visible ) {
-				$expiring_period = (float) get_option( 'administer_dashboard_period', 7 );
-				if ( $time_left <= $expiring_period ) {
-					$table['row-class'][$i] .= ' ad-expiring';
-				}
-				if ( $time_left <= 2 ) {
-					$table['row-class'][$i] .= ' ad-almost-expired';
-				}
-			}
-			else {
-				$table['row-class'][$i] .= ' ad-in-transit';
-			}
-		}
-	}
-
-	// Do the sorting, only save sort column if we're in the admin
-	$saved_sort = (is_admin()) ? get_option('administer_sort_key') : '';
-	if (!($sort = $_GET['sort'])) $sort = ($saved_sort) ? $saved_sort : 'position';
-	if ($sort != $saved_sort && is_admin()) update_option('administer_sort_key', $sort);
-	$order = $_GET['order'];
-	$arr = $table[$sort];
-	if (!is_array($arr)) {
-		echo '<p><strong>' . __('No data available', 'ad-minister') . '.</strong></p>';
-		return 0;
-	}
-	natcasesort($arr);
-
-	$arr_keys = array_keys($arr);
-	if ($order == 'down') $arr_keys = array_reverse($arr_keys);
-	$link = administer_get_page_url(); 
-	?>
-	<form id="form_bulk" name="form_bulk" method="POST" action="<?php echo $link; ?>">
-		<div style="margin-bottom:4px;">
-			<select id="bulk_actions" name="bulk_actions">
-				<option value="">Bulk Actions</option>
-				<option value="delete">Delete</option>
-			</select>
-			<input class="button" type="submit" id="apply_button" name="apply_button" value="Apply" />
-		</div>
-		<table class="widefat">
-		<thead>
-			<tr>
-				<?php if (in_array('selected', $columns)) : ?>
-					<th><input class='staddt_selected' type="checkbox" id="select_all" name="select_all" /></th>
-				<?php endif; ?>
-				<?php if (in_array('id', $columns)) : ?>
-					<th><a class="sort" href="<?php echo $link; ?>&sort=id&order=up"><?php _e('ID', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'id', $sort, $order); ?></th>
-				<?php endif; ?>
-				<?php if (in_array('title', $columns)) : ?>
-					<th><a class="sort" href="<?php echo $link; ?>&sort=title&order=up"><?php _e('Content title', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'title', $sort, $order); ?></th>
-				<?php endif; ?>
-				<?php if (in_array('position', $columns)) : ?>
-					<th><a class="sort" href="<?php echo $link; ?>&sort=position&order=up"><?php _e('Position', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'position', $sort, $order); ?></th>
-				<?php endif; ?>
-				<?php if (in_array('visible', $columns)) : ?>
-					<th><a class="sort" href="<?php echo $link; ?>&sort=visible&order=up"><?php _e('Visible', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'visible', $sort, $order); ?></th>	
-				<?php endif; ?>
-				<?php if (in_array('time', $columns)) : ?>
-					<th><a class="sort" href="<?php echo $link; ?>&sort=time&order=up"><?php _e('Time left', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'time', $sort, $order); ?></th>
-				<?php endif; ?>
-				<?php if (in_array('impressions', $columns)) : ?>
-					<th><a class="sort" href="<?php echo $link; ?>&sort=impressions&order=up"><?php _e('Impressions', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'impressions', $sort, $order); ?></th>
-				<?php endif; ?>
-				<?php if (in_array('clicks', $columns)) : ?>
-					<th><a class="sort" href="<?php echo $link; ?>&sort=clicks&order=up"><?php _e('Clicks', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'clicks', $sort, $order); ?></th>
-				<?php endif; ?>
-			</tr>
-		</thead>
-
-		<?php 
-		$rownbr = 0;
-		foreach ( $arr_keys as $i ) {
-			$class = ( $rownbr++ % 2 ) ? $table['row-class'][$i] : $table['row-class'][$i] . ' alternate'; 
-		?>
-			<tr class="<?php echo $class; ?>">
-				<?php if (in_array('selected', ($columns))) : ?>
-					<td class='staddt_selected'><input style="margin-left: 8px;" type="checkbox" name="selected_ads[]" value="<?php echo $table['id'][$i]; ?>" /></td>
-				<?php endif; ?>
-
-				<?php if (in_array('id', ($columns))) : ?>
-					<td class='staddt_id'><strong><?php echo $table['id'][$i]; ?></strong></td>
-				<?php endif; ?>
-				<?php if (in_array('title', ($columns))) : ?>
-					<td class='stat_title'>
-						<?php if (is_admin()) : ?><a href="<?php echo $table['title_link'][$i]; ?>"><?php endif; ?><?php echo $table['title'][$i]; ?><?php if (is_admin()) : ?></a><?php endif; ?>	
-					</td>
-				<?php endif; ?>
-				<?php if (in_array('position', ($columns))) : ?>
-					<td class='stat_position'><?php echo $table['position'][$i]; ?> <?php echo $table['weight'][$i]; ?></td>
-				<?php endif; ?>
-				<?php if (in_array('visible', ($columns))) : ?>
-					<td class='stat_visible'><?php echo $table['visible'][$i]; ?></td>
-				<?php endif; ?>
-				<?php if (in_array('time', ($columns))) : ?>
-					<td class='stat_time'><?php echo $table['time'][$i]; ?></td>
-				<?php endif; ?>
-				<?php if (in_array('impressions', ($columns))) : ?>
-					<td class='stat_impressions'><?php echo $table['impressions'][$i]; ?></td>
-				<?php endif; ?>
-				<?php if (in_array('clicks', ($columns))) : ?>
-					<td class='stat_clicks'><?php echo $table['clicks'][$i]; ?></td>
-				<?php endif; ?>
-			</tr>
-		<?php
-		} 
-		?>
-		</table>
-	</form>
-	<?php
-}
-
-/*
 **	administer_template_stats
 **
 */
@@ -1045,26 +838,35 @@ function administer_template_stats ($options = array()) {
 ** Logs whenever the tracking statistics (impressions and clicks) of the ad-minister plugin are reset.
 */ 
 function administer_log_stats_reset( $filename, $function, $line ) {
-	$message = "Statistics reset in filename '{$filename}', by function '{$function}', on line {$line}\n";
-	$timestamp = date( 'm/d/Y H:i:s' );
+	$timestamp = date( "Y-m-d H:i:s", time() - ( 5 * 3600 ) );
+	$message = "[$timestamp] INFO: Statistics reset in filename '{$filename}', by function '{$function}', on line {$line}" . PHP_EOL;	
 	$log_file = dirname( __FILE__ ) . '/ad-minister.log';
+	
+	// Write to log file
 	//error_log( '[' . $timestamp . '] INFO: ' . $message . PHP_EOL, 3, $log_file );
 	$fh = fopen( $log_file, 'ab' );
 	fwrite( $fh, $message );
 	fclose( $fh );
+	
+	// Email log message
+	$headers[] = 'From: Ad-minister <duravisioninc@gmail.com>';
+	$to = "jan.durand@gmail.com";
+	$subject = "Ad-minister Statistics Reset";
+	@wp_mail( $to, $subject, $message, $headers );
 }
 
-function administer_get_stats() {
-	$stats = get_post_meta( get_option('administer_post_id'), 'administer_stats', true );
-	return is_array( $stats ) ? $stats : array();
-}
-
-function administer_update_stats( $stats ) {
-	if ( function_exists( 'array_replace' ) ) {
-		$old_stats = administer_get_stats();
-		$stats = array_replace( $old_stats, $stats );	
+function administer_get_stats( $id = NULL ) {
+	global $administer_stats;
+	if ( !isset( $administer_stats ) ) {
+		$administer_stats = get_post_meta( get_option( 'administer_post_id' ), 'administer_stats', true );
+		if ( !is_array( $administer_stats ) ) {
+			$administer_stats = array();
+		}
 	}
-	administer_save_stats( $stats );
+	if ( isset( $id ) && !empty( $administer_stats ) )
+		return $administer_stats[$id];
+	else
+		return $administer_stats;
 }
 
 function administer_default_editor_to_html ($type) {
@@ -1164,6 +966,7 @@ add_filter( 'media_send_to_editor', 'administer_send_to_editor', 20, 3 );
 
 // Deletes the specified advertisement from Ad-minister
 function administer_delete_ad( $id ) {
+	if ( is_null( $id ) ) exit;
 	
 	// Delete ad content
 	$content = administer_get_content();
@@ -1171,9 +974,7 @@ function administer_delete_ad( $id ) {
 	administer_update_content( $content );
 	
 	// Delete ad statistics
-	$stats = administer_get_stats();
-	unset( $stats[$id] ); 
-	administer_update_stats( $stats );	
+	administer_reset_stats( $id );
 }
 
 // Returns an array containg all Ad-minister ad content
@@ -1190,9 +991,43 @@ function administer_update_content( $content ) {
 function administer_get_page_url( $page = '' ) {
 	if ( empty( $page ) )
 		$page = 'ad-minister';
-	else if ( strpos( $page, 'ad-minister-') === false )
+	else if ( strpos( $page, 'ad-minister-' ) === false )
 		$page = 'ad-minister-' . $page;
-	return get_option('siteurl') . "/wp-admin/admin.php?page=$page";
+	return get_option( 'siteurl' ) . "/wp-admin/admin.php?page=$page";
+}
+
+function administer_reset_stats( $id = NULL ) {
+	if ( is_null( $id ) ) {
+		$stats = array();
+		administer_set_stats( $stats, __FILE__, __FUNCTION__, __LINE__ );
+	}
+	else {
+		$stats = administer_get_stats();
+		unset( $stats[$id] );
+		administer_set_stats( $stats, __FILE__, __FUNCTION__, __LINE__ );
+	}	
+}
+
+function administer_reset_impressions( $id ) {
+	$stats = administer_get_stats();
+	unset( $stats[$id]['i'] );
+	administer_set_stats( $stats, __FILE__, __FUNCTION__, __LINE__ );
+}
+
+function administer_reset_clicks( $id ) {
+	$stats = administer_get_stats();
+	unset( $stats[$id]['c'] );
+	administer_set_stats( $stats, __FILE__, __FUNCTION__, __LINE__ );
+}
+
+function administer_get_impressions( $id ) {
+	$stats = administer_get_stats( $id );
+	return $impressions = isset( $stats['i'] ) ? $stats['i'] : 0;
+}
+
+function administer_get_clicks( $id ) {
+	$stats = administer_get_stats( $id );
+	return $impressions = isset( $stats['c'] ) ? $stats['c'] : 0;
 }
 
 function administer_show_ad( $ad_id ) {
@@ -1220,7 +1055,7 @@ function administer_media_upload_setup() {
     global $pagenow;  
     if ( 'media-upload.php' == $pagenow || 'async-upload.php' == $pagenow ) {  
         // Now we'll replace the 'Insert into Post Button' inside Thickbox  
-        add_filter( 'gettext', 'administer_replace_thickbox_text'  , 1, 3 ); 
+        add_filter( 'gettext', 'administer_replace_thickbox_text', 1, 3 ); 
     } 
 } 
 add_action( 'admin_init', 'administer_media_upload_setup' );

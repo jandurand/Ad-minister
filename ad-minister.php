@@ -78,8 +78,8 @@ if (get_option('administer_dashboard_show') == 'true') {
 	
 // Count the number of impressions the content makes
 if (get_option('administer_statistics') == 'true' && !is_admin()) {
-	add_action('init', 'administer_init_impressions');
-	add_action('shutdown', 'administer_save_impressions');
+	add_action('init', 'administer_init_stats');
+	add_action('shutdown', 'administer_save_stats');
 }
 add_action('init', 'administer_do_redirect', 11);
 
@@ -156,8 +156,7 @@ function administer_enqueue_scripts ( $hook ) {
 		wp_enqueue_script('ad-minister-banner', plugins_url('js/ad-minister-banner.js', __FILE__), array('jquery', 'jquery-multiselect', 'media-upload', 'thickbox', 'editor'));
 	}
 	else if ( $page == 'ad-minister' ) {
-		wp_register_script('ad-minister-content', plugins_url( 'js/ad-minister-content.js', __FILE__ ), array('jquery'));
-		wp_enqueue_script('ad-minister-content');		
+		wp_enqueue_script('ad-minister-content', plugins_url( 'js/ad-minister-content.js', __FILE__ ), array('jquery'));
 	}	
 }
 add_action( 'admin_enqueue_scripts', 'administer_enqueue_scripts', 20 ); 

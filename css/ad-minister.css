@@ -8,6 +8,10 @@ a.sort {
 ***    ADD CONTENT
 **/
 
+select#ad_position {
+	min-width: 700px;
+}
+
 input.create, div.text-button-wrapper {
 	width: 97%;
 }
@@ -128,11 +132,11 @@ label.create {
 	text-decoration: none;
 }
 
-	.tabs li a:hover 
-	{
-		border: 1px solid #bbb;
-		border-bottom: none;
-	}
+.tabs li a:hover 
+{
+	border: 1px solid #bbb;
+	border-bottom: none;
+}
 
 .tabs li a.tabs-current
 {

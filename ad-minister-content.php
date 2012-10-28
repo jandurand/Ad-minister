@@ -56,19 +56,26 @@
 		
 			$table['title'][$i] = administer_f($ad['title']);
 			$table['title_link'][$i] = $link . '&action=edit&id=' . $ad['id'];
-			$table['position'][$i] = ($pos = administer_f($ad['position'])) ? $pos : '-';
-
+			if ( !is_array( $ad['position'] ) ) {
+				$ad['position'] = ( $ad['position'] == '-' ) ? array() : array( $ad['position'] );	
+				$contents[$i] = $ad;
+				administer_update_content( $contents ); 	
+			}
+			natcasesort( $ad['position'] );
+			$table['position'][$i] = $ad['position'];
+			
 			// Check visibility
 			$is_visible = administer_is_visible($ad);
 
 			// Set orphaned content as invisible
-			if ($table['position'][$i] == '-') $is_visible = false;
+			if (( $table['position'][$i] == '-') || empty( $table['position'][$i] ) ) $is_visible = false;
+			//$is_visible = !empty( $table['position'][$i] );
 
 			// Get the time left based on schedule, if present
-			$ages = administer_content_age($ad['scheduele']);
-			$time = '-';
-			$time_left = -1;
-			foreach ($ages as $age) {
+			//$ages = administer_content_age($ad['scheduele']);
+			$time_left = administer_get_time_left( $ad['scheduele'] );
+			$time = administer_get_time_left_string( $time_left );
+			/*foreach ($ages as $age) {
 				if ( $age['start'] == $age['end'] ) continue;
 				
 				if ( $age['start'] > 0 ) {
@@ -83,20 +90,20 @@
 				if ( $age['end'] >= 0 ) break;
 
 				$time = 'Ended';
-			}
+			}*/
 		
 			// Calculate and format the fractional weight, given as a percentage
 			$total_weight = 0;
+			
 			foreach ($contents as $content)
-				if ($ad['position'] == $content['position']) 
-					if (administer_is_visible($content))
-						$total_weight += ($content['weight']) ? $content['weight'] : 1;		
+				if ( ( $ad['position'] == $content['position'] ) && administer_is_visible( $content ) )
+					$total_weight += ( $content['weight'] ) ? $content['weight'] : 1;		
 			$weight = ($ad['weight']) ? $ad['weight'] : 1;
-			$weight = (administer_is_visible($ad)) ? 100*$weight/$total_weight : '';
+			$weight = (administer_is_visible($ad)) ? 100 * $weight / $total_weight : '';
 			$table['weight'][$i] = ($weight > 0 && $weight < 100) ? '(' . round($weight, 1) . '%)' : '';
 			
 			// Don't show percentages for orphans
-			if ($table['position'][$i] == '-') $table['weight'][$i] = '';
+			if (!$table['position'] || $table['position'][$i] == '-') $table['weight'][$i] = '';
 
 			// Format impressions
 			$impressions = ($stats[$ad['id']]['i']) ? $stats[$ad['id']]['i'] : '0';
@@ -113,14 +120,15 @@
 			$table['id'][$i] = $ad['id'];
 			$table['row-class'][$i]   = ($is_visible) ? 'ad-visible' : 'ad-invisible';
 			
-			if ( $time_left > 0 ) {
-				if ( $is_visible ) {
-					$expiring_period = (float) get_option( 'administer_dashboard_period', 7 );
-					if ( $time_left <= $expiring_period ) {
-						$table['row-class'][$i] .= ' ad-expiring';
-					}
-					if ( $time_left <= 2 ) {
+			if ( $time_left ) {
+				if ( ( $time_left > 0 ) && $is_visible ) {
+					$expiring_period = (float) get_option( 'administer_dashboard_period', 7 ) * 86400;
+					$two_days = 2 * 86400;
+					if ( $time_left <= $two_days ) {
 						$table['row-class'][$i] .= ' ad-almost-expired';
+					}
+					else if ( $time_left <= $expiring_period ) {
+						$table['row-class'][$i] .= ' ad-expiring';
 					}
 				}
 				else {
@@ -139,15 +147,30 @@
 			echo '<p><strong>' . __('No data available', 'ad-minister') . '.</strong></p>';
 			return 0;
 		}
-		natcasesort($arr);
-
+		
+		if ( $sort == 'position' ) {
+			function array_cmp( $a, $b ) {
+    			if ( $a === $b ) return 0;
+				
+				for ( $j = 0; $j < min( count( $a ), count( $b ) ); ++$j ) {
+					$result = strnatcasecmp( $a[$j], $b[$j] );
+					if ( $result ) return $result;
+				}
+				return ( $a < $b ) ? -1 : 1;
+			}
+			uasort( $arr, "array_cmp" );
+		}
+		else {
+			natcasesort($arr);
+		}
+		
 		$arr_keys = array_keys($arr);
 		if ($order == 'down') $arr_keys = array_reverse($arr_keys);
 		$link = administer_get_page_url(); 
 		?>
 		<form id="form_bulk" name="form_bulk" method="POST" action="<?php echo $link; ?>">
-			<div style="margin-bottom:4px;">
-				<select id="bulk_actions" name="bulk_actions">
+			<div style="margin-bottom: 4px;">
+				<select style="min-width: 150px;" id="bulk_actions" name="bulk_actions">
 					<option value="">Bulk Actions</option>
 					<option value="delete">Delete</option>
 					<option value="show">Show</option>
@@ -165,7 +188,7 @@
 						<th><a class="sort" href="<?php echo $link; ?>&sort=id&order=up"><?php _e('ID', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'id', $sort, $order); ?></th>
 					<?php endif; ?>
 					<?php if (in_array('title', $columns)) : ?>
-						<th><a class="sort" href="<?php echo $link; ?>&sort=title&order=up"><?php _e('Content title', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'title', $sort, $order); ?></th>
+						<th><a class="sort" href="<?php echo $link; ?>&sort=title&order=up"><?php _e('Title', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'title', $sort, $order); ?></th>
 					<?php endif; ?>
 					<?php if (in_array('position', $columns)) : ?>
 						<th><a class="sort" href="<?php echo $link; ?>&sort=position&order=up"><?php _e('Position', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'position', $sort, $order); ?></th>
@@ -174,7 +197,7 @@
 						<th><a class="sort" href="<?php echo $link; ?>&sort=visible&order=up"><?php _e('Visible', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'visible', $sort, $order); ?></th>	
 					<?php endif; ?>
 					<?php if (in_array('time', $columns)) : ?>
-						<th><a class="sort" href="<?php echo $link; ?>&sort=time&order=up"><?php _e('Time left', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'time', $sort, $order); ?></th>
+						<th><a class="sort" href="<?php echo $link; ?>&sort=time&order=up"><?php _e('Time Left', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'time', $sort, $order); ?></th>
 					<?php endif; ?>
 					<?php if (in_array('impressions', $columns)) : ?>
 						<th><a class="sort" href="<?php echo $link; ?>&sort=impressions&order=up"><?php _e('Impressions', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'impressions', $sort, $order); ?></th>
@@ -204,7 +227,21 @@
 						</td>
 					<?php endif; ?>
 					<?php if (in_array('position', ($columns))) : ?>
-						<td class='stat_position'><?php echo $table['position'][$i]; ?> <?php echo $table['weight'][$i]; ?></td>
+						<td class='stat_position'>
+							<?php 
+							if ( empty( $table['position'][$i] ) ) {
+								echo '-';
+							}
+							else if ( is_array( ($table['position'][$i]) ) ) {
+								foreach ( $table['position'][$i] as $position ) {
+									echo "<div>$position</div>";
+								}
+							}
+							else 
+								echo $table['position'][$i]; 
+							?> 
+							<?php //echo $table['weight'][$i]; ?>
+						</td>
 					<?php endif; ?>
 					<?php if (in_array('visible', ($columns))) : ?>
 						<td class='stat_visible'><?php echo $table['visible'][$i]; ?></td>
