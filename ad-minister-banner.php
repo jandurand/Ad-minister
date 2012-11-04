@@ -171,7 +171,7 @@
 							<select id="ad_size" name="ad_size">
 								<?php
 								if ( !$value['ad_size'] ) $value['ad_size'] = '306x300';  
-								$options = array( '306x140', '306x300', '474x270', '474x560', '642x140', '978x100' );
+								$options = array( '306x60', '306x140', '306x250', '306x300', '474x270', '474x560', '642x140', '978x100' );
 								foreach ($options as $option) {
 									$dims = explode( 'x', $option );
 									echo "<option value='$option' " . ( ( $option == $value['ad_size'] ) ? "selected" : "" ) . ">{$dims[0]} x {$dims[1]}</option>";
@@ -243,12 +243,12 @@
 							<!-- Date selection fields -->
 							<div id="ad-schedule-wrapper">
 								<div id="ad-schedule-from-wrapper">
-									<label for="ad_schedule_df">From:</label><br />
+									<label for="ad_schedule_df">Start:</label><br />
 									<input readonly="readonly" type="text" maxlength="10" name="ad_schedule_df" id="ad_schedule_df" title="Select a start date" value="" />
 									<div class="hide-info" id="ad_schedule_df_info"></div>
 								</div>
 								<div id="ad-schedule-to-wrapper">
-									<label for="ad_schedule_dt">To:</label><br />
+									<label for="ad_schedule_dt">End:</label><br />
 									<input readonly="readonly" type="text" maxlength="10" name="ad_schedule_dt" id="ad_schedule_dt" title="Select an end date" value="" />
 									<div class="hide-info" id="ad_schedule_dt_info"></div>
 								</div>

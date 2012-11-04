@@ -522,6 +522,8 @@ function administer_build_code( $ad ) {
 	$media_url = $ad['ad_media_url'];
 	list( $width, $height ) = explode( 'x', $ad['ad_size'] );
 	$link_url = $ad['ad_link_url'];
+	if ( $link_url && ( false === strpos( $link_url, '%tracker%' ) ) )
+		$link_url = '%tracker%' . $link_url; 
 	$audio_url = $ad['ad_audio_url'];
 	$ad_hint = $ad['hint'];
 	$ext = strtolower( pathinfo( $media_url, PATHINFO_EXTENSION ) );
@@ -541,7 +543,7 @@ function administer_build_code( $ad ) {
 		default:
 			$code = '';
 	}
-	if ( $link_url ) $code = "<a title='$hint' href='%tracker%$link_url' target='_blank'>$code</a>";
+	if ( $link_url ) $code = "<a title='$hint' href='$link_url' target='_blank'>$code</a>";
 	if ( $audio_url ) $code .= "[esplayer url='$audio_url' width='$width' height='27']";
 	return $code;
 }
@@ -617,7 +619,7 @@ function administer_display_position( $pos ) {
 	$code = administer_get_ad_code( $ad['id'] );
 	
 	// Replace click tracker placeholder
-	if ( !( false === strpos( $code, '%tracker%' ) ) ) {
+	if ( false !== strpos( $code, '%tracker%' ) ) {
 		if ( get_option( 'administer_statistics' ) == 'true' ) {
 			$code = str_replace( '%tracker%', administer_tracker_url( $ad['id'] ), $code );
 		} else { 

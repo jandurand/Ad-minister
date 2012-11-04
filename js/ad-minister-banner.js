@@ -54,12 +54,12 @@ jQuery(document).ready(function() {
 			ad_title_info.addClass("error"); //add error class to info span
 			ad_title_info.show();
 			return false;
-		} else {
-			ad_title.removeClass("error");
-			ad_title_info.text("");
-			ad_title_info.removeClass("error");
-			ad_title_info.hide();
 		}
+		
+		ad_title.removeClass("error");
+		ad_title_info.text("");
+		ad_title_info.removeClass("error");
+		ad_title_info.hide();
 		return true;
 	}
 	ad_title.change(validate_ad_title);
@@ -73,12 +73,12 @@ jQuery(document).ready(function() {
 			ad_media_url_info.addClass("error"); //add error class to info span
 			ad_media_url_info.show();
 			return false;
-		} else {
-			ad_media_url.removeClass("error");
-			ad_media_url_info.text("");
-			ad_media_url_info.removeClass("error");
-			ad_media_url_info.hide();
-		}
+		}	
+		
+		ad_media_url.removeClass("error");
+		ad_media_url_info.text("");
+		ad_media_url_info.removeClass("error");
+		ad_media_url_info.hide();
 		return true;
 	}
 	ad_media_url.change(validate_ad_media_url);
@@ -92,27 +92,26 @@ jQuery(document).ready(function() {
 			ad_position_info.addClass("error"); //add error class to info span
 			ad_position_info.show();
 			return false;
-		} else {
-			ad_position.removeClass("error");
-			ad_position_info.text("");
-			ad_position_info.removeClass("error");
-			ad_position_info.hide();
-		}
+		} 	
+		
+		ad_position.removeClass("error");
+		ad_position_info.text("");
+		ad_position_info.removeClass("error");
+		ad_position_info.hide();
 		return true;
 	}
 	ad_position.change(validate_ad_position);
 	
 	// Add date picker functionality to 'From' and 'To' date selection fields for 'Schedule' field
 	jQuery(function() {
-		jQuery("#ad_schedule_df").datepicker({ dateFormat: "yy-mm-dd", minDate: new Date(), changeMonth: true, changeYear: true });
-		jQuery("#ad_schedule_dt").datepicker({ dateFormat: "yy-mm-dd", minDate: new Date(), changeMonth: true, changeYear: true });
+		jQuery("#ad_schedule_df").datepicker({ dateFormat: "yy-mm-dd", changeMonth: true, changeYear: true });
+		jQuery("#ad_schedule_dt").datepicker({ dateFormat: "yy-mm-dd", changeMonth: true, changeYear: true });
 	});
 	
 	// 'Schedule' field 'Add Schedule' button onClick event handler
 	sched_add_button.click(function() {
 		var validated = true, new_schedule = '';
-		validated = validate_ad_schedule_dt() ? validated : false;
-		validated = validate_ad_schedule_df() ? validated : false;
+		validated = validate_ad_schedule();
 		if (!validated) return false;
 		if (ad_schedule.val() != '') new_schedule += ',';
 		new_schedule += ad_schedule_df.val() + ':' + ad_schedule_dt.val();
@@ -120,6 +119,27 @@ jQuery(document).ready(function() {
 		ad_schedule_df.val('');
 		ad_schedule_dt.val('');
 	});
+
+	// Validates the provided schedule
+	function validate_ad_schedule() {
+		if (!(validate_ad_schedule_df() && validate_ad_schedule_dt())) {
+			return false;
+		}
+		
+		if (ad_schedule_df.val() > ad_schedule_dt.val()) {
+			ad_schedule_df.addClass("error"); // adding css error class to the control
+			ad_schedule_df_info.text("Start date > End date"); 
+			ad_schedule_df_info.addClass("error"); //add error class to info span
+			ad_schedule_df_info.show();
+			return false;	
+		}
+			
+		ad_schedule_df.removeClass("error");
+		ad_schedule_df_info.text("");
+		ad_schedule_df_info.removeClass("error");
+		ad_schedule_df_info.hide();				
+		return true;
+	}
 
 	// Validates 'Schedule From' field
 	function validate_ad_schedule_df() {
@@ -129,12 +149,12 @@ jQuery(document).ready(function() {
 			ad_schedule_df_info.addClass("error"); //add error class to info span
 			ad_schedule_df_info.show();
 			return false;	
-		} else {
-			ad_schedule_df.removeClass("error");
-			ad_schedule_df_info.text("");
-			ad_schedule_df_info.removeClass("error");
-			ad_schedule_df_info.hide();
 		}
+		
+		ad_schedule_df.removeClass("error");
+		ad_schedule_df_info.text("");
+		ad_schedule_df_info.removeClass("error");
+		ad_schedule_df_info.hide();
 		return true;
 	}
 	ad_schedule_df.change(validate_ad_schedule_df);
@@ -147,12 +167,12 @@ jQuery(document).ready(function() {
 			ad_schedule_dt_info.addClass("error"); //add error class to info span
 			ad_schedule_dt_info.show();
 			return false;	
-		} else {
-			ad_schedule_dt.removeClass("error");
-			ad_schedule_dt_info.text("");
-			ad_schedule_dt_info.removeClass("error");
-			ad_schedule_dt_info.hide();
 		}
+			
+		ad_schedule_dt.removeClass("error");
+		ad_schedule_dt_info.text("");
+		ad_schedule_dt_info.removeClass("error");
+		ad_schedule_dt_info.hide();
 		return true;
 	}
 	ad_schedule_dt.change(validate_ad_schedule_dt);
@@ -257,6 +277,7 @@ jQuery(document).ready(function() {
 					case 'mode_basic':
 						complete_basic_from_advanced();
 						break;
+					
 					case 'mode_advanced':
 						//switchEditors.switchto(jQuery('a#content-html'));
 						jQuery('a#content-html').click();
@@ -333,7 +354,7 @@ jQuery(document).ready(function() {
 	}
 	
 	function get_media_height(html) {
-		var pattern, height, heights = [100, 140, 270, 300, 560];
+		var pattern, height, heights = [60, 100, 140, 250, 270, 300, 560];
 		pattern = /[\[<][^\]>]+height=['"]([^\s'"\]>]*)['"]/i;
 		height = html.match(pattern);
 		height = (height != null) ? getClosestNumber(height[1], heights) : '300';
