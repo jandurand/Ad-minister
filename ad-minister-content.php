@@ -69,29 +69,11 @@
 
 			// Set orphaned content as invisible
 			if (( $table['position'][$i] == '-') || empty( $table['position'][$i] ) ) $is_visible = false;
-			//$is_visible = !empty( $table['position'][$i] );
-
+			
 			// Get the time left based on schedule, if present
-			//$ages = administer_content_age($ad['scheduele']);
 			$time_left = administer_get_time_left( $ad['scheduele'] );
 			$time = administer_get_time_left_string( $time_left );
-			/*foreach ($ages as $age) {
-				if ( $age['start'] == $age['end'] ) continue;
-				
-				if ( $age['start'] > 0 ) {
-					$time_left = $age['start'];
-					$time = __('Starts in', 'ad-minister') . ' ' . sprintf( '%.1f', $time_left ) . ' ' . __('days', 'ad-minister');
-				}
-				else {
-					$time_left = $age['end'];
-					$time = __('Ends in', 'ad-minister') . ' ' . sprintf( '%.1f', $time_left ) . ' ' . __('days', 'ad-minister');
-				}
-				
-				if ( $age['end'] >= 0 ) break;
 
-				$time = 'Ended';
-			}*/
-		
 			// Calculate and format the fractional weight, given as a percentage
 			$total_weight = 0;
 			
@@ -137,7 +119,7 @@
 			}
 		}
 
-		// Do the sorting, only save sort column if we're in the admin
+		// Do the sorting, only save sort column if we're in admin
 		$saved_sort = (is_admin()) ? get_option('administer_sort_key') : '';
 		if (!($sort = $_GET['sort'])) $sort = ($saved_sort) ? $saved_sort : 'position';
 		if ($sort != $saved_sort && is_admin()) update_option('administer_sort_key', $sort);
@@ -181,30 +163,28 @@
 			<table class="widefat">
 			<thead>
 				<tr>
-					<?php if (in_array('selected', $columns)) : ?>
+					<?php if ( in_array('selected', $columns) ) { ?>
 						<th><input class='staddt_selected' type="checkbox" id="select_all" name="select_all" /></th>
-					<?php endif; ?>
-					<?php if (in_array('id', $columns)) : ?>
-						<th><a class="sort" href="<?php echo $link; ?>&sort=id&order=up"><?php _e('ID', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'id', $sort, $order); ?></th>
-					<?php endif; ?>
-					<?php if (in_array('title', $columns)) : ?>
-						<th><a class="sort" href="<?php echo $link; ?>&sort=title&order=up"><?php _e('Title', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'title', $sort, $order); ?></th>
-					<?php endif; ?>
-					<?php if (in_array('position', $columns)) : ?>
-						<th><a class="sort" href="<?php echo $link; ?>&sort=position&order=up"><?php _e('Position', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'position', $sort, $order); ?></th>
-					<?php endif; ?>
-					<?php if (in_array('visible', $columns)) : ?>
-						<th><a class="sort" href="<?php echo $link; ?>&sort=visible&order=up"><?php _e('Visible', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'visible', $sort, $order); ?></th>	
-					<?php endif; ?>
-					<?php if (in_array('time', $columns)) : ?>
-						<th><a class="sort" href="<?php echo $link; ?>&sort=time&order=up"><?php _e('Time Left', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'time', $sort, $order); ?></th>
-					<?php endif; ?>
-					<?php if (in_array('impressions', $columns)) : ?>
-						<th><a class="sort" href="<?php echo $link; ?>&sort=impressions&order=up"><?php _e('Impressions', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'impressions', $sort, $order); ?></th>
-					<?php endif; ?>
-					<?php if (in_array('clicks', $columns)) : ?>
-						<th><a class="sort" href="<?php echo $link; ?>&sort=clicks&order=up"><?php _e('Clicks', 'ad-minister'); ?></a> <?php administer_sort_link($link, 'clicks', $sort, $order); ?></th>
-					<?php endif; ?>
+					<?php } ?>
+					
+					<?php
+					$cols = array(
+						array( 'name' => 'id', 'caption' => 'ID' ),
+						array( 'name' => 'title', 'caption' => 'Title' ),
+						array( 'name' => 'position', 'caption' => 'Position' ),
+						array( 'name' => 'visible', 'caption' => 'Visible' ),
+						array( 'name' => 'time', 'caption' => 'Time Left' ),
+						array( 'name' => 'impressions', 'caption' => 'Impressions' ),
+						array( 'name' => 'clicks', 'caption' => 'Clicks' )
+					);					
+					foreach ( $cols as $col ) {
+						if ( in_array( $col['name'], $columns ) ) {
+					?>
+							<th><?php administer_sort_link( $link, $col['name'], $sort, $order, __( $col['caption'], 'ad-minister' ) ); ?></th>
+					<?php
+						}
+					} 
+					?>
 				</tr>
 			</thead>
 

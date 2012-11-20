@@ -525,7 +525,7 @@ function administer_build_code( $ad ) {
 	if ( $link_url && ( false === strpos( $link_url, '%tracker%' ) ) )
 		$link_url = '%tracker%' . $link_url; 
 	$audio_url = $ad['ad_audio_url'];
-	$ad_hint = $ad['hint'];
+	$ad_hint = $ad['ad_hint'];
 	$ext = strtolower( pathinfo( $media_url, PATHINFO_EXTENSION ) );
 	switch ( $ext ) {
 		case 'jpg':
@@ -535,7 +535,7 @@ function administer_build_code( $ad ) {
 		case 'png':
 		case 'tif':
 		case 'tiff':
-			$code = "<img title='$hint' src='$media_url' width='$width' height='$height' />";
+			$code = "<img title='$ad_hint' src='$media_url' width='$width' height='$height' />";
 			break;
 		case 'swf':
 			$code = "[flashad src='$media_url' width='$width' height='$height']";
@@ -543,7 +543,7 @@ function administer_build_code( $ad ) {
 		default:
 			$code = '';
 	}
-	if ( $link_url ) $code = "<a title='$hint' href='$link_url' target='_blank'>$code</a>";
+	if ( $link_url ) $code = "<a title='$ad_hint' href='$link_url' target='_blank'>$code</a>";
 	if ( $audio_url ) $code .= "[esplayer url='$audio_url' width='$width' height='27']";
 	return $code;
 }
@@ -807,14 +807,22 @@ function administer_f($text) {
 **
 **  Generate the link for the statistics table headers
 */
-function administer_sort_link($link, $field, $sort, $order) {
+function administer_sort_link($link, $field, $sort, $order, $caption = '' ) {
 	//$link = get_option('siteurl') . '/wp-admin/edit.php?page=' . dirname(plugin_basename (__FILE__)) . '';
-	$link .= '&tab=statistics';
-	if ($field != $sort) return false;
-	$symbol = ($order == 'up') ? '&darr;' : '&uarr;';
-	$linkorder = ($order == 'up') ? 'down' : 'up';
-	$alt = ($order == 'up') ? __('Sort up', 'ad-minister') : __('Sort down', 'ad-minister');
-	echo '<a class="sort" title="' . $alt. '" href="' . $link . ' &sort=' . $sort . '&order=' . $linkorder . '">' . $symbol . '</a>';
+	//$link .= '&tab=statistics';
+	if ( empty( $caption ) ) $caption = $field;
+	
+	if ($field == $sort) {
+		$symbol = ($order == 'up') ? ' &uarr;' : ' &darr;';
+		$linkorder = ($order == 'up') ? 'down' : 'up';
+		$alt = ($order == 'up') ? __('Sort descending', 'ad-minister') : __('Sort ascending', 'ad-minister');
+	}
+	else {
+		$symbol = '';
+		$linkorder = 'up';
+		$alt = __( "Sort by {$caption}", 'ad-minister');
+	}
+	echo "<a class='sort' title='{$alt}' href='{$link}&sort={$field}&order={$linkorder}'>{$caption}{$symbol}</a>";
 }
 
 /*
