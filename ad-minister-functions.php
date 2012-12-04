@@ -519,13 +519,20 @@ function administer_is_visible($ad) {
 */
 function administer_build_code( $ad ) {
 	if ( !( $ad['ad_mode'] == 'mode_basic' and $ad['ad_media_url'] ) ) return '';
+	
 	$media_url = $ad['ad_media_url'];
+	
 	list( $width, $height ) = explode( 'x', $ad['ad_size'] );
+	
 	$link_url = $ad['ad_link_url'];
-	if ( $link_url && ( false === strpos( $link_url, '%tracker%' ) ) )
+	if ( $link_url && ( false === strpos( $link_url, '%tracker%' ) ) ) {
 		$link_url = '%tracker%' . $link_url; 
+	}
+	
 	$audio_url = $ad['ad_audio_url'];
+	
 	$ad_hint = $ad['ad_hint'];
+	
 	$ext = strtolower( pathinfo( $media_url, PATHINFO_EXTENSION ) );
 	switch ( $ext ) {
 		case 'jpg':
@@ -537,14 +544,25 @@ function administer_build_code( $ad ) {
 		case 'tiff':
 			$code = "<img title='$ad_hint' src='$media_url' width='$width' height='$height' />";
 			break;
+		
 		case 'swf':
 			$code = "[flashad src='$media_url' width='$width' height='$height']";
 			break;
+		
 		default:
 			$code = '';
 	}
-	if ( $link_url ) $code = "<a title='$ad_hint' href='$link_url' target='_blank'>$code</a>";
+	
+	if ( $link_url ) {
+		if ( $ext === 'swf' ) {
+			$code .= "<a title='$ad_hint' href='$link_url' target='_blank' class='flash-banner-link'></a>";
+		}
+		else {
+			$code = "<a title='$ad_hint' href='$link_url' target='_blank'>$code</a>";
+		}
+	}
 	if ( $audio_url ) $code .= "[esplayer url='$audio_url' width='$width' height='27']";
+	
 	return $code;
 }
 

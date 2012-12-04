@@ -291,6 +291,40 @@ jQuery(document).ready(function() {
 	    });
 	});
 	
+	if (!Array.prototype.map) {
+	  Array.prototype.map = function(func /*, thisp*/) {
+	    var len = this.length;
+	    if (typeof func != "function")
+	      throw new TypeError();
+
+	    var res = new Array(len);
+	    var thisp = arguments[1];
+	    for (var i = 0; i < len; i++) {
+	      if (i in this)
+	        res[i] = func.call(thisp, this[i], i, this);
+	    }
+
+	    return res;
+	  };
+	}
+
+	if (!Array.prototype.closest) {
+		Array.prototype.closest = function(n) {
+			n = +n;
+			if (typeof n != "number")
+	    		throw new TypeError();
+
+			var diff = Number.MAX_VALUE;
+	    	for (var i = 0; i < this.length; ++i) {
+	      		if (i in this) {
+	        		diff = (Math.abs(+this[i] - n) < Math.abs(diff)) ? +this[i] - n : diff;
+				}
+			}
+	
+	    	return n + diff;
+	  	};
+	}
+	
 	// Returns the number in the array closest to the given number
 	function getClosestNumber(number, numbers) {
 		if (!(numbers instanceof Array)) return false;
@@ -348,16 +382,18 @@ jQuery(document).ready(function() {
 	
 	function get_media_width(html) {
 		var pattern, width, widths = [306, 474, 642, 978];
-		pattern = /[\[<][^\]>]+width=['"]([^\s'"\]>]*)['"]/i;
+		pattern = /[\[<][^\]>]+width=['"]([\d]+)['"]/i;
 		width = html.match(pattern);
-		width = (width != null) ? getClosestNumber(width[1], widths) : '306';
+		//width = (width != null) ? getClosestNumber(width[1], widths) : '306';
+		return (width != null) ? widths.closest(width[1]) + '' : '306';
 	}
 	
 	function get_media_height(html) {
 		var pattern, height, heights = [60, 100, 140, 250, 270, 300, 560];
-		pattern = /[\[<][^\]>]+height=['"]([^\s'"\]>]*)['"]/i;
+		pattern = /[\[<][^\]>]+height=['"]([\d]+)['"]/i;
 		height = html.match(pattern);
-		height = (height != null) ? getClosestNumber(height[1], heights) : '300';
+		//height = (height != null) ? getClosestNumber(height[1], heights) : '300';
+		return (height != null) ? heights.closest(height[1]) + '' : '300';
 	}
 	
 	// Fill in basic mode controls from advanced mode html
@@ -368,6 +404,8 @@ jQuery(document).ready(function() {
 		/* Get Media URL first */
 		value = get_media_src_url(html);
 		if (value != '') ad_media_url.val(value);
+		
+		/* Get Media Dimensions */
 		width = get_media_width(html);
 		height = get_media_height(html);
 		if (width != '' && height != '') ad_size.val(width + 'x' + height);
@@ -378,7 +416,7 @@ jQuery(document).ready(function() {
 		pattern = /<a[^>]+href=['"]([^\s'"]*)['"]/i;
 		value = html.match(pattern);
 		if (value != null) {
-			ad_link_url.val(value[1]);
+			ad_link_url.val(value[1].replace('%tracker%', ''));
 		}
 		
 		/* Get Audio URL */
@@ -430,8 +468,14 @@ jQuery(document).ready(function() {
 		}
 		
 		// Add anchor tags
-		if ( ad_link_url.val() != '' ) 
-			html = "<a href='{0}' target='_blank' title='{1}' >{2}</a>".format(ad_link_url.val(), ad_hint.val(), html);
+		if ( ad_link_url.val() != '' ) {
+			if (ext === 'swf') {
+				html += "<a class='flash-banner-link' href='%tracker%{0}' target='_blank' title='{1}'></a>".format(ad_link_url.val().replace('%tracker%', ''), ad_hint.val());
+			}
+			else {
+				html = "<a href='%tracker%{0}' target='_blank' title='{1}'>{2}</a>".format(ad_link_url.val().replace('%tracker%', ''), ad_hint.val(), html);
+			}
+		}
 		
 		// Add audio
 		if ( ad_audio_url.val() != '' ) 
@@ -443,22 +487,19 @@ jQuery(document).ready(function() {
 	// Generates a preview of the current ad content
 	function preview_ad_content() {
 		var	html = '', ext, width, height;
-		width = ad_size.val().split('x');
-		height = jQuery.trim(width[1]);
-		width = jQuery.trim(width[0]);
-		if (ad_mode.val() == 'mode_basic') {
-			if (validate_ad_media_url()) {
-				html = get_html_from_basic()
-			}
+		if ((ad_mode.val() === 'mode_basic') && validate_ad_media_url()) {
+			html = get_html_from_basic()
 		}
 		else {
 			html = ad_html.val();
 		}
-		
 		if (html == '') {
 			alert('There is no advertisement content to preview.');
 			return false;
 		}
+		width = get_media_width(html);
+		height = get_media_height(html);
+		html = "<div width='{0}' height='{1}'>{2}</div>".format(width, height, html);
 		ad_preview.html(html);
 		return true;
 	}
