@@ -524,10 +524,10 @@ function administer_build_code( $ad ) {
 	
 	list( $width, $height ) = explode( 'x', $ad['ad_size'] );
 	
-	$link_url = $ad['ad_link_url'];
-	if ( $link_url && ( false === strpos( $link_url, '%tracker%' ) ) ) {
-		$link_url = '%tracker%' . $link_url; 
-	}
+	$link_url = '%tracker%' . urlencode( str_replace( '%tracker%', '', trim( $ad['ad_link_url'] ) ) );
+	/*if ( $link_url && ( false === strpos( $link_url, '%tracker%' ) ) ) {
+		$link_url = '%tracker%' . urlencode( $link_url ); 
+	}*/
 	
 	$audio_url = $ad['ad_audio_url'];
 	
@@ -752,8 +752,8 @@ function administer_register_click( $id ) {
 **   Register clicks.
 */
 function administer_do_redirect() {
-	if ($qs = $_SERVER['REQUEST_URI']) {
-		$pos = strpos($qs, 'administer_redirect');
+	if ( $qs = $_SERVER['REQUEST_URI'] ) {
+		$pos = strpos( $qs, 'administer_redirect' );
 		if ( !( false === $pos ) ) { 
 			$link = substr( $qs, $pos );
 
@@ -761,11 +761,14 @@ function administer_do_redirect() {
 			$pattern = '/administer_redirect_(\d+?)\=/';
 			preg_match( $pattern, $link, $matches );
 			$id = $matches[1];
-			$link = str_replace( 'administer_redirect_' . $id . '=', '', $link );
-			if ( !( startsWith( $link, 'http://' ) || startsWith( $link, 'https://' ) ) ) {
+			$link = urldecode( str_replace( 'administer_redirect_' . $id . '=', '', $link ) );
+			if ( !( startsWith( $link, 'http://' ) || 
+				    startsWith( $link, 'https://' )  || 
+					startsWith( $link, 'mailto:' ) ) ) {
 				$link = "http://{$link}";
 			}
-			// Save click!
+			
+			// Save click
 			if ( get_option( 'administer_statistics') == 'true' ) { 
 				administer_register_click( $id );
 				administer_save_stats();
