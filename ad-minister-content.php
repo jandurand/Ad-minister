@@ -104,9 +104,9 @@
 			
 			if ( $time_left ) {
 				if ( ( $time_left > 0 ) && $is_visible ) {
-					$expiring_period = (float) get_option( 'administer_dashboard_period', 7 ) * 86400;
-					$two_days = 2 * 86400;
-					if ( $time_left <= $two_days ) {
+					$expiring_period = (float) get_option( 'administer_dashboard_period', 30 ) * 86400;
+					$almost_expired_period = 7 * 86400;
+					if ( $time_left <= $almost_expired_period ) {
 						$table['row-class'][$i] .= ' ad-almost-expired';
 					}
 					else if ( $time_left <= $expiring_period ) {

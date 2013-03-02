@@ -91,23 +91,23 @@ function administer_position_select ( $ad_positions = array() ) {
 /*
 **   administer_get_available_id()
 **
-**   Finds the highest number from zero that is not currently
+**   Finds the highest number from one that is not currently
 **   some content.
 */
 function administer_get_available_id() {
-
 	$content = get_post_meta(get_option('administer_post_id'), 'administer_content', true);
 
-	if (!is_array($content)) return 0;
-	if (empty($content)) return 0;
+	if (!is_array($content)) return 1;
+	if (empty($content)) return 1;
 
 	// Store the ids in a separate array
 	$ids = array_keys($content);
 	sort($ids);
 
 	// Get the smallest unpopulated id
-	for ($i = 0; $i < $ids[count($ids) - 1] + 2; $i++)
-			if ($i != $ids[$i]) return strval($i);
+	for ($i = 1; $i < $ids[count($ids) - 1] + 2; $i++) {
+		if ($i != $ids[$i]) return strval($i);
+	}
 }
 
 /*
@@ -524,10 +524,10 @@ function administer_build_code( $ad ) {
 	
 	list( $width, $height ) = explode( 'x', $ad['ad_size'] );
 	
-	$link_url = '%tracker%' . urlencode( str_replace( '%tracker%', '', trim( $ad['ad_link_url'] ) ) );
-	/*if ( $link_url && ( false === strpos( $link_url, '%tracker%' ) ) ) {
-		$link_url = '%tracker%' . urlencode( $link_url ); 
-	}*/
+	$link_url = trim( $ad['ad_link_url'] );
+	if ( $link_url ) {
+		$link_url = '%tracker%' . urlencode( str_replace( '%tracker%', '', $link_url ) );
+	}
 	
 	$audio_url = $ad['ad_audio_url'];
 	
