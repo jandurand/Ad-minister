@@ -97,15 +97,15 @@ function administer_position_select ( $ad_positions = array() ) {
 function administer_get_available_id() {
 	$content = get_post_meta(get_option('administer_post_id'), 'administer_content', true);
 
-	if (!is_array($content)) return 1;
-	if (empty($content)) return 1;
+	if (!is_array($content)) return 0;
+	if (empty($content)) return 0;
 
 	// Store the ids in a separate array
 	$ids = array_keys($content);
 	sort($ids);
 
 	// Get the smallest unpopulated id
-	for ($i = 1; $i < $ids[count($ids) - 1] + 2; $i++) {
+	for ($i = 0; $i < $ids[count($ids) - 1] + 2; $i++) {
 		if ($i != $ids[$i]) return strval($i);
 	}
 }
