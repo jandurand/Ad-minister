@@ -170,8 +170,9 @@
 						<td>
 							<select id="ad_size" name="ad_size">
 								<?php
-								if ( !$value['ad_size'] ) $value['ad_size'] = '306x300';  
-								$options = array( '306x60', '306x140', '306x250', '306x300', '474x270', '474x560', '642x140', '978x100' );
+								if ( !$value['ad_size'] ) $value['ad_size'] = 'Actual';
+								echo "<option value='Actual' " . ( ( 'Actual' == $value['ad_size'] ) ? "selected" : "" ) . ">Actual</option>";  
+								$options = array( '306x60', '306x140', '306x250', '306x300', '474x270', '474x560', '642x100', '642x140', '978x100' );
 								foreach ($options as $option) {
 									$dims = explode( 'x', $option );
 									echo "<option value='$option' " . ( ( $option == $value['ad_size'] ) ? "selected" : "" ) . ">{$dims[0]} x {$dims[1]}</option>";

@@ -385,7 +385,8 @@ jQuery(document).ready(function() {
 		pattern = /[\[<][^\]>]+width=['"]([\d]+)['"]/i;
 		width = html.match(pattern);
 		//width = (width != null) ? getClosestNumber(width[1], widths) : '306';
-		return (width != null) ? widths.closest(width[1]) + '' : '306';
+		//return (width != null) ? widths.closest(width[1]) + '' : '306';
+		return (width != null) ? width[1] + '' : '';
 	}
 	
 	function get_media_height(html) {
@@ -393,7 +394,8 @@ jQuery(document).ready(function() {
 		pattern = /[\[<][^\]>]+height=['"]([\d]+)['"]/i;
 		height = html.match(pattern);
 		//height = (height != null) ? getClosestNumber(height[1], heights) : '300';
-		return (height != null) ? heights.closest(height[1]) + '' : '300';
+		//return (height != null) ? heights.closest(height[1]) + '' : '300';
+		return (height != null) ? height[1] + '' : '';
 	}
 	
 	// Fill in basic mode controls from advanced mode html
@@ -408,7 +410,13 @@ jQuery(document).ready(function() {
 		/* Get Media Dimensions */
 		width = get_media_width(html);
 		height = get_media_height(html);
-		if (width != '' && height != '') ad_size.val(width + 'x' + height);
+		var dims = ['306x60', '306x140', '306x250', '306x300', '474x270', '474x560', '642x100', '642x140', '978x100'];
+		if (dims.indexOf(width + 'x' + height) == -1) {
+			ad_size.val('Actual');
+		} 
+		else {
+			ad_size.val(width + 'x' + height);
+		}
 		value = get_media_title(html);	
 		if (value != '') ad_hint.val(value);
 		
@@ -486,7 +494,7 @@ jQuery(document).ready(function() {
 	
 	// Generates a preview of the current ad content
 	function preview_ad_content() {
-		var	html = '', ext, width, height;
+		var	html = '', ext, width, height, dims;
 		if ((ad_mode.val() === 'mode_basic') && validate_ad_media_url()) {
 			html = get_html_from_basic()
 		}
@@ -494,12 +502,15 @@ jQuery(document).ready(function() {
 			html = ad_html.val();
 		}
 		if (html == '') {
-			alert('There is no advertisement content to preview.');
+			alert('There is no content to preview.');
 			return false;
 		}
+		dims = '';
 		width = get_media_width(html);
+		dims += (width != '') ? "width='{0}'".format(width) : '';
 		height = get_media_height(html);
-		html = "<div width='{0}' height='{1}'>{2}</div>".format(width, height, html);
+		dims += (height != '') ? " height='{0}'".format(height) : '';
+		html = "<div {0}>{1}</div>".format(dims, html);
 		ad_preview.html(html);
 		return true;
 	}
