@@ -888,7 +888,7 @@ function administer_log_stats_reset( $filename, $function, $line ) {
 
 function administer_get_stats( $id = NULL ) {
 	global $administer_stats;
-	if ( !isset( $administer_stats ) ) {
+	if ( !isset( $administer_stats ) || empty( $administer_stats ) ) {
 		$administer_stats = get_post_meta( get_option( 'administer_post_id' ), 'administer_stats', true );
 		if ( !is_array( $administer_stats ) ) {
 			$administer_stats = array();
