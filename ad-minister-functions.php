@@ -72,7 +72,7 @@ function administer_get_position_template ($position = array(), $nbr = 0) {
 function administer_position_select ( $ad_positions = array() ) {
 	// Convert ad_positions to array
 	if ( !is_array( $ad_positions ) ) {
-		$ad_positions = ( !$ad_positions || $ad_positions == '-') ?	$ad_positions = array() : $ad_positions = array( $ad_positions );
+		$ad_positions = ( !$ad_positions || $ad_positions == '-') ?	array() : array( $ad_positions );
 	}
 	$html = '<select multiple="multiple" name="position[]" id="ad_position">';
 	$positions = get_post_meta(get_option('administer_post_id'), 'administer_positions', true);	
@@ -513,6 +513,13 @@ function administer_is_visible($ad) {
 }
 
 /*
+**   administer_get_code_html ( )
+**
+**   Returns advertisement html code from supplied arguments.
+*/
+//function administer_get_code_html( $args )
+
+/*
 **   administer_build_code ( )
 **
 **   Build advertisement code from stored information.
@@ -522,7 +529,14 @@ function administer_build_code( $ad ) {
 	
 	$media_url = $ad['ad_media_url'];
 	
-	list( $width, $height ) = explode( 'x', $ad['ad_size'] );
+	if ( !$ad['ad_size'] ) {
+		list( $width, $height ) = getimagesize( $media_url );
+		$width = $width == 0 ? '' : $width;
+		$height = $height == 0 ? '' : $height;
+	}
+	else {
+		list( $width, $height ) = explode( 'x', $ad['ad_size'] );
+	}
 	
 	$link_url = trim( $ad['ad_link_url'] );
 	if ( $link_url ) {
@@ -549,12 +563,16 @@ function administer_build_code( $ad ) {
 			$code = "[flashad src='$media_url' width='$width' height='$height']";
 			break;
 		
+		case 'flv':
+			$code = "[flv id={$ad['id']} src='$media_url' width='$width' height='$height']";
+			break;
+		
 		default:
 			$code = '';
 	}
 	
 	if ( $link_url ) {
-		if ( $ext === 'swf' ) {
+		if ( $ext === 'swf' or $ext === 'flv' ) {
 			$code .= "<a title='$ad_hint' href='$link_url' target='_blank' class='flash-banner-link'></a>";
 		}
 		else {
@@ -565,6 +583,24 @@ function administer_build_code( $ad ) {
 	
 	return $code;
 }
+
+function administer_build_code_callback() {
+	//global $wpdb; // this is how you get access to the database
+
+	$ad = array(
+		'ad_mode' => 'mode_basic',
+		'ad_media_url' => $_POST['ad_media_url'],
+		'ad_size' => $_POST['ad_size'],
+		'ad_link_url' => $_POST['ad_link_url'],
+		'ad_audio_url' => $_POST['ad_audio_url'],
+		'ad_hint' => $_POST['ad_hint']
+	);
+	
+	echo administer_build_code( $ad );
+	
+	die(); // this is required to return a proper result
+}
+add_action('wp_ajax_administer_build_code', 'administer_build_code_callback');
 
 // Returns a random value from an array with a weighted bias
 function array_rand_weighted( array $values, array $weights ) {
@@ -973,24 +1009,53 @@ function flashad_func( $atts ) {
 	if ( !empty( $src ) ) {
 		$extension = strrchr( $src, '.' ); 
 		if ( $extension == '.swf' ) {
-			$html = "<object width='$width' height='$height' classid='clsid:d27cdb6e-ae6d-11cf-96b8-444553540000' codebase='http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0'><param name='quality' value='high' /><param name='src' value='$src' /><param name='pluginspage' value='http://www.macromedia.com/go/getflashplayer' /><param name='wmode' value='transparent' /><embed width='$width' height='$height' type='application/x-shockwave-flash' src='$src' quality='high' pluginspage='http://www.macromedia.com/go/getflashplayer' wmode='transparent' /></object>";
+			$html = "<object classid='clsid:D27CDB6E-AE6D-11cf-96B8-444553540000' width='$width' height='$height'><param name='movie' value='$src' /><param name='wmode' value='transparent' /><!--[if !IE]>--><object type='application/x-shockwave-flash' data='$src' width='$width' height='$height'><param name='wmode' value='transparent' /><!--<![endif]--><p>Flash Content Unavailable</p><!--[if !IE]>--></object><!--<![endif]--></object>";			
+			//$html = "<object width='$width' height='$height' classid='clsid:d27cdb6e-ae6d-11cf-96b8-444553540000' codebase='http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0'><param name='quality' value='high' /><param name='src' value='$src' /><param name='pluginspage' value='http://www.macromedia.com/go/getflashplayer' /><param name='wmode' value='transparent' /><embed width='$width' height='$height' type='application/x-shockwave-flash' src='$src' quality='high' pluginspage='http://www.macromedia.com/go/getflashplayer' wmode='transparent' /></object>";
 		}
 	}
 	return $html;
 }
 add_shortcode( 'flashad', 'flashad_func' );
 
+// Create shortcode [flv]
+function flv_func( $atts ) {
+	extract( shortcode_atts( array(
+		'id' => rand(),
+		'src' => '',
+		'linkUrl' => '',
+		'width' => get_post_meta( $post->ID, 'ad-minister-flash-ad-width', true ),
+		'height' => get_post_meta( $post->ID, 'ad-minister-flash-ad-height', true )
+	), $atts ) );
+
+	$html = '<!-- [flv: invalid shortcode attributes specified] -->';
+	if ( !empty( $src ) ) {
+		$extension = strrchr( $src, '.' ); 
+		if ( $extension == '.flv' ) {
+			$html = "<div id='flvplayer$id' style='width:{$width}px;height:{$height}px'></div><script language='JavaScript'>flowplayer('flvplayer$id', '/flowplayer/flowplayer-3.2.16.swf', { clip: { url: '$src', autoPlay: true, autoBuffering: true, linkUrl: '$linkUrl', linkWindow: '_blank' }, plugins: { controls: null }, buffering: false, onFinish: function() { this.stop(); this.play(); }, onBeforePause: function() { return false; } });</script>";
+		}
+	}
+	return $html;
+}
+add_shortcode( 'flv', 'flv_func' );
+
 // Customize media uploader html for Ad-minister
 function administer_send_to_editor($html, $id, $attachment_info) {	
-	$attachment = get_post($id); //fetching attachment by $id passed through
-	$mime_type = $attachment->post_mime_type; //getting the mime-type
-	$src = wp_get_attachment_url( $id );
+	$id = $_POST['attachment']['id'];
+	$attachment = get_post( $id ); // fetching attachment by $id passed through
+	$mime_type = $attachment->post_mime_type; // getting the mime-type
+	$src = wp_get_attachment_url( $id ); 
 	switch ( $mime_type ) {
 		// Flash shockwave
 		case 'application/x-shockwave-flash':
 			$html = do_shortcode( "[flashad src='$src' width='306' height='300']" );
 			break;
 	}
+	
+	$extension = strrchr( $src, '.' );
+	if ( $extension === '.flv' ) {
+		$html = do_shortcode( "[flv src='$src']" );
+	}
+	
 	return $html;
 }
 add_filter( 'media_send_to_editor', 'administer_send_to_editor', 20, 3 );

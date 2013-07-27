@@ -23,7 +23,7 @@
 		if ( $_POST['save'] ) {
 					
 			$content = administer_get_content();
-			$index = count($content);
+			$index = count( $content );
 
 			// Required parameters
 			$id = ( $_POST['id'] ) ? $_POST['id'] : administer_get_available_id();
@@ -55,8 +55,6 @@
 			// Save ad content
 			administer_update_content( $content );
 			
-			$value = $content[$id];
-			
 			// Notify
 			echo '<div id="message" class="updated fade"><p><strong>' . __('Banner Saved.', 'ad-minister') . '</strong></p></div>';
 		
@@ -77,9 +75,8 @@
 			if ( !$value ) $value = $content[$_GET['id']];
 			
 			// For legacy ads
-			if ( !$value['ad_mode'] ) {
-				$value['ad_mode'] = 'mode_advanced';
-			}
+			$value['ad_mode'] = ( !$value['ad_mode'] ) ? 'mode_advanced' : $value['ad_mode'];
+			$value['ad_size'] = ( $value['ad_size'] == 'Actual' ) ? '' : $value['ad_size'];
 			
 			if ($_GET['resetimpressions'] == 'true') {
 				administer_reset_impressions( $_GET['id'] );
@@ -170,13 +167,13 @@
 						<td>
 							<select id="ad_size" name="ad_size">
 								<?php
-								if ( !$value['ad_size'] ) $value['ad_size'] = 'Actual';
-								echo "<option value='Actual' " . ( ( 'Actual' == $value['ad_size'] ) ? "selected" : "" ) . ">Actual</option>";  
+								//if ( !$value['ad_size'] ) $value['ad_size'] = '306x300';
 								$options = array( '306x60', '306x140', '306x250', '306x300', '474x270', '474x560', '642x100', '642x140', '978x100' );
 								foreach ($options as $option) {
 									$dims = explode( 'x', $option );
 									echo "<option value='$option' " . ( ( $option == $value['ad_size'] ) ? "selected" : "" ) . ">{$dims[0]} x {$dims[1]}</option>";
 								}
+								echo "<option value='' " . ( !$value['ad_size'] ? "selected" : "" ) . ">Actual Size</option>";  
 								?>
 							</select>
 							<span style="vertical-align: middle;">Pixels</span><br />
@@ -343,7 +340,7 @@
 					<input id="save" name="save" class="button-primary" type="submit" value="<?php _e('Save', 'ad-minister'); ?>">
 					
 					<!-- Preview Button -->
-					<input id="preview-button" alt="#TB_inline?inlineId=ad-preview" title="Advertisement Preview" class="button thickbox" type="button" value="Preview" />
+					<input id="preview-button" title="Advertisement Preview" class="button" type="button" value="Preview" />
 					<div id="ad-preview" style="display: none;"></div>
 				
 					<?php if ( $_GET['action'] == 'edit' ) : ?>

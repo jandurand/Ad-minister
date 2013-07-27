@@ -134,25 +134,27 @@ function administer_enqueue_scripts ( $hook ) {
 	if ( $page == 'ad-minister-banner' ) {
 		wp_enqueue_script('page');
 		wp_enqueue_script('editor');
-        wp_enqueue_script('thickbox');
+    wp_enqueue_script('thickbox');
 		wp_enqueue_style('thickbox');
 		wp_enqueue_script('media-upload');
 		wp_enqueue_script('controls');
 		
 		// Enqueue jquery ui
-		wp_enqueue_script( 'jquery-ui', get_stylesheet_directory_uri() . '/js/jquery-ui-1.8.24.custom.min.js', array( 'jquery' ) );
-			
+		/*wp_enqueue_script( 'jquery-ui', get_stylesheet_directory_uri() . '/js/jquery-ui-1.8.24.custom.min.js', array( 'jquery' ) );*/
+		wp_enqueue_script( 'jquery-ui', get_stylesheet_directory_uri() . '/js/jquery-ui-1.10.3.custom.min.js', array( 'jquery' ) );	
+		
 		// Enqueue style sheet for date picker fields
-		wp_enqueue_style( 'ui-lightness', get_stylesheet_directory_uri() . '/css/ui-lightness/jquery-ui-1.8.24.custom.css' );
+		wp_enqueue_style( 'ui-lightness', get_stylesheet_directory_uri() . '/css/ui-lightness-old/jquery-ui-1.8.24.custom.css' );
+		/*wp_enqueue_style( 'ui-lightness', get_stylesheet_directory_uri() . '/css/ui-lightness/jquery-ui-1.10.3.custom.css' );*/
 		
 		// Enqueue jquery multiselect plugin
 		wp_enqueue_script( 'jquery-multiselect', plugins_url('js/jquery.multiselect.min.js', __FILE__), array( 'jquery', 'jquery-ui' ) );
 		wp_enqueue_style( 'jquery-multiselect', plugins_url('css/jquery.multiselect.css', __FILE__) );
 		wp_enqueue_script( 'jquery-multiselect-filter', plugins_url('js/jquery.multiselect.filter.min.js', __FILE__), array( 'jquery-multiselect' ) );
 		wp_enqueue_style( 'jquery-multiselect-filter', plugins_url('css/jquery.multiselect.filter.css', __FILE__) );
-		
-		
+				
 		// Enqueue script to use media uploader and provide form validation
+		wp_enqueue_media();
 		wp_enqueue_script('ad-minister-banner', plugins_url('js/ad-minister-banner.js', __FILE__), array('jquery', 'jquery-multiselect', 'media-upload', 'thickbox', 'editor'));
 	}
 	else if ( $page == 'ad-minister' ) {
