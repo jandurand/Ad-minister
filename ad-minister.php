@@ -131,6 +131,10 @@ function administer_enqueue_scripts ( $hook ) {
 	wp_register_script( 'ad-minister', plugins_url( 'js/ad-minister.js', __FILE__ ) );
 	wp_enqueue_script( 'ad-minister' );	
 	
+	// Enqueue Flash Players
+	wp_enqueue_script( 'flowplayer', '/../flowplayer/flowplayer-3.2.12.min.js' );
+	wp_enqueue_script( 'swfobject', '/../swfobject/swfobject.js' );
+	
 	if ( $page == 'ad-minister-banner' ) {
 		wp_enqueue_script('page');
 		wp_enqueue_script('editor');

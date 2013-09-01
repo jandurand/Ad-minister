@@ -97,17 +97,21 @@ function administer_position_select ( $ad_positions = array() ) {
 function administer_get_available_id() {
 	$content = get_post_meta(get_option('administer_post_id'), 'administer_content', true);
 
-	if (!is_array($content)) return 0;
-	if (empty($content)) return 0;
+	if (!is_array($content)) return 1;
+	if (empty($content)) return 1;
 
 	// Store the ids in a separate array
 	$ids = array_keys($content);
 	sort($ids);
 
 	// Get the smallest unpopulated id
-	for ($i = 0; $i < $ids[count($ids) - 1] + 2; $i++) {
-		if ($i != $ids[$i]) return strval($i);
+	$id = 1;
+	for ($i = 0; $i < count($ids); ++$i) {
+		if ($id != $ids[$i]) return strval($id);
+		++$id;
 	}
+	
+	return strval($id);
 }
 
 /*
@@ -378,8 +382,8 @@ class AdministerWidget extends WP_Widget {
         $position = $instance['position'];
         
         echo $before_widget;
-		administer_display_position( $position );
-		echo $after_widget;
+				administer_display_position( $position );
+				echo $after_widget;
     }
 	
 	// Updates the widget
@@ -557,28 +561,19 @@ function administer_build_code( $ad ) {
 		case 'tif':
 		case 'tiff':
 			$code = "<img title='$ad_hint' src='$media_url' width='$width' height='$height' />";
+			$code = $link_url ? "<a title='$ad_hint' href='$link_url' target='_blank'>$code</a>" : $code;
 			break;
 		
 		case 'swf':
-			$code = "[flashad src='$media_url' width='$width' height='$height']";
-			break;
-		
 		case 'flv':
-			$code = "[flv id={$ad['id']} src='$media_url' width='$width' height='$height']";
+			$code = do_shortcode( "[flashad id={$ad['id']} src='$media_url' width='$width' height='$height']" );
+			$code = !empty( $link_url ) ? $code . "<a title='$ad_hint' href='$link_url' target='_blank' class='flash-banner-link'></a>" : $code;
 			break;
 		
 		default:
 			$code = '';
 	}
 	
-	if ( $link_url ) {
-		if ( $ext === 'swf' or $ext === 'flv' ) {
-			$code .= "<a title='$ad_hint' href='$link_url' target='_blank' class='flash-banner-link'></a>";
-		}
-		else {
-			$code = "<a title='$ad_hint' href='$link_url' target='_blank'>$code</a>";
-		}
-	}
 	if ( $audio_url ) $code .= "[esplayer url='$audio_url' width='$width' height='27']";
 	
 	return $code;
@@ -591,9 +586,9 @@ function administer_build_code_callback() {
 		'ad_mode' => 'mode_basic',
 		'ad_media_url' => $_POST['ad_media_url'],
 		'ad_size' => $_POST['ad_size'],
+		'ad_hint' => $_POST['ad_hint'],
 		'ad_link_url' => $_POST['ad_link_url'],
-		'ad_audio_url' => $_POST['ad_audio_url'],
-		'ad_hint' => $_POST['ad_hint']
+		'ad_audio_url' => $_POST['ad_audio_url']
 	);
 	
 	echo administer_build_code( $ad );
@@ -658,6 +653,7 @@ function administer_display_position( $pos ) {
 	foreach ( $content as $ad_id => $ad ) {
 		$ad['position'] = !is_array( $ad['position'] ) ? array( $ad['position'] ) : $ad['position']; 
 		if ( !( in_array( $pos, $ad['position'] ) and administer_is_visible( $ad ) ) ) continue;
+		
 		// Consider ad for display if its in this position and visible	
 		$ad_ids[] = $ad_id;
 		$ad_weights[] = $ad['weight'] ? $ad['weight'] : 1;
@@ -666,8 +662,19 @@ function administer_display_position( $pos ) {
 	// Ensure that we have at least 1 ad to display
 	if ( empty( $ad_ids ) ) return false;
 
-	// Randomly select an ad taking weight into consideration
-	$ad = $content[array_rand_weighted( $ad_ids, $ad_weights )];
+	if ( isset( $_SESSION['views'] ) and isset( $_SESSION['administer_key'] ) ) {
+		// Use session info if available to select ad to display
+		for ( $i = 0; $i < count( $ad_ids ); ++$i )
+			for ( $j = 0; $j < $ad_weights[$i]; ++$j )
+				$temp_ids[] = $ad_ids[$i];
+		sort( $temp_ids );
+		$i = ( $_SESSION['administer_key'] + $_SESSION['views'] ) % count( $ad_ids );
+		$ad = $content[$temp_ids[$i]]; 
+	}
+	else {
+		// Randomly select an ad taking weight into consideration
+		$ad = $content[array_rand_weighted( $ad_ids, $ad_weights )];
+	}
 	
 	// Get advertisement code
 	$code = administer_get_ad_code( $ad['id'] );
@@ -713,24 +720,25 @@ function administer_display_position( $pos ) {
 		$roles = array( 'administrator', 'editor', 'author', 'contributor' );
 		foreach ( $roles as $role ) {
 			if ( user_can( $current_user->ID, $role ) ) return true;
-		}
-
-		// Register click/view events through Google Analytics
-		?>
-		
-		<script type="text/javascript">
-		$('<?php echo "#ad-{$ad['id']}"; ?>').ready(function() {
-			var _gaq = _gaq || [];
-			_gaq.push(['_trackEvent', 'Advertisements', 'View', '<?php echo $ad['title']; ?>']);
-		});
-		$('<?php echo "#ad-{$ad['id']} a"; ?>').click(function() {
-			var _gaq = _gaq || [];
-			_gaq.push(['_trackEvent', 'Advertisements', 'Click', '<?php echo $ad['title']; ?>']);
-		});
-		</script>
-		
-		<?php				
+		}				
 	}
+	
+	// Register click/view events through Google Analytics
+	?>
+	
+	<script type="text/javascript">
+	jQuery('#ad-<?php echo "{$ad['id']}"; ?>').ready(function() {
+		var _gaq = _gaq || [];
+		_gaq.push(['_trackEvent', 'Advertisements', 'View', '<?php echo $ad['title']; ?>']);
+	});
+	jQuery('#ad-<?php echo "{$ad['id']} a"; ?>').click(function() {
+		var _gaq = _gaq || [];
+		_gaq.push(['_trackEvent', 'Advertisements', 'Click', '<?php echo $ad['title']; ?>']);
+	});
+	</script>
+	
+	<?php
+
 	return true;
 }
 
@@ -1000,65 +1008,49 @@ add_filter( 'attachment_fields_to_save', 'administer_attachment_fields_to_save',
 // Create shortcode [flashad]
 function flashad_func( $atts ) {
 	extract( shortcode_atts( array(
+		'id' => rand(),
 		'src' => '',
-		'width' => get_post_meta( $post->ID, 'ad-minister-flash-ad-width', true ),
-		'height' => get_post_meta( $post->ID, 'ad-minister-flash-ad-height', true )
+		'linkUrl' => '',
+		'width' => '', //get_post_meta( $post->ID, 'ad-minister-flash-ad-width', true ),
+		'height' => '' //get_post_meta( $post->ID, 'ad-minister-flash-ad-height', true )
 	), $atts ) );
-
+	
+	$width = $width ? $width . 'px' : '100%';
+	$height = $height ? $height . 'px' : '100%';
+	
 	$html = '<!-- [flashad: invalid shortcode attributes specified] -->';
 	if ( !empty( $src ) ) {
-		$extension = strrchr( $src, '.' ); 
-		if ( $extension == '.swf' ) {
-			$html = "<object classid='clsid:D27CDB6E-AE6D-11cf-96B8-444553540000' width='$width' height='$height'><param name='movie' value='$src' /><param name='wmode' value='transparent' /><!--[if !IE]>--><object type='application/x-shockwave-flash' data='$src' width='$width' height='$height'><param name='wmode' value='transparent' /><!--<![endif]--><p>Flash Content Unavailable</p><!--[if !IE]>--></object><!--<![endif]--></object>";			
-			//$html = "<object width='$width' height='$height' classid='clsid:d27cdb6e-ae6d-11cf-96b8-444553540000' codebase='http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0'><param name='quality' value='high' /><param name='src' value='$src' /><param name='pluginspage' value='http://www.macromedia.com/go/getflashplayer' /><param name='wmode' value='transparent' /><embed width='$width' height='$height' type='application/x-shockwave-flash' src='$src' quality='high' pluginspage='http://www.macromedia.com/go/getflashplayer' wmode='transparent' /></object>";
+		$ext = strtolower( pathinfo( $src, PATHINFO_EXTENSION ) );
+ 		switch ( $ext ) {
+			case 'swf':	
+				$html = "<object classid='clsid:D27CDB6E-AE6D-11cf-96B8-444553540000' width='$width' height='$height'><param name='movie' value='$src' /><param name='wmode' value='transparent' /><!--[if !IE]>--><object type='application/x-shockwave-flash' data='$src' width='$width' height='$height'><param name='wmode' value='transparent' /><!--<![endif]--><p>Flash Content Unavailable</p><!--[if !IE]>--></object><!--<![endif]--></object>";
+				break;
+				
+			case 'flv':
+				$html = "<div id='flvplayer$id' style='width:{$width};height:{$height}'></div><script language='JavaScript'>flowplayer('flvplayer$id', '/flowplayer/flowplayer-3.2.16.swf', { clip: { url: '$src', autoPlay: true, autoBuffering: true, linkUrl: '$linkUrl', linkWindow: '_blank' }, plugins: { controls: null }, buffering: false, onFinish: function() { this.stop(); this.play(); }, onBeforePause: function() { return false; } });</script>";
+				break;
 		}
 	}
 	return $html;
 }
 add_shortcode( 'flashad', 'flashad_func' );
 
-// Create shortcode [flv]
-function flv_func( $atts ) {
-	extract( shortcode_atts( array(
-		'id' => rand(),
-		'src' => '',
-		'linkUrl' => '',
-		'width' => get_post_meta( $post->ID, 'ad-minister-flash-ad-width', true ),
-		'height' => get_post_meta( $post->ID, 'ad-minister-flash-ad-height', true )
-	), $atts ) );
-
-	$html = '<!-- [flv: invalid shortcode attributes specified] -->';
-	if ( !empty( $src ) ) {
-		$extension = strrchr( $src, '.' ); 
-		if ( $extension == '.flv' ) {
-			$html = "<div id='flvplayer$id' style='width:{$width}px;height:{$height}px'></div><script language='JavaScript'>flowplayer('flvplayer$id', '/flowplayer/flowplayer-3.2.16.swf', { clip: { url: '$src', autoPlay: true, autoBuffering: true, linkUrl: '$linkUrl', linkWindow: '_blank' }, plugins: { controls: null }, buffering: false, onFinish: function() { this.stop(); this.play(); }, onBeforePause: function() { return false; } });</script>";
-		}
-	}
-	return $html;
-}
-add_shortcode( 'flv', 'flv_func' );
-
 // Customize media uploader html for Ad-minister
-function administer_send_to_editor($html, $id, $attachment_info) {	
+/*function administer_send_to_editor($html, $id, $attachment_info) {	
 	$id = $_POST['attachment']['id'];
 	$attachment = get_post( $id ); // fetching attachment by $id passed through
 	$mime_type = $attachment->post_mime_type; // getting the mime-type
 	$src = wp_get_attachment_url( $id ); 
-	switch ( $mime_type ) {
-		// Flash shockwave
-		case 'application/x-shockwave-flash':
-			$html = do_shortcode( "[flashad src='$src' width='306' height='300']" );
-			break;
-	}
-	
-	$extension = strrchr( $src, '.' );
-	if ( $extension === '.flv' ) {
-		$html = do_shortcode( "[flv src='$src']" );
+	$ext = strtolower( pathinfo( $src, PATHINFO_EXTENSION ) );
+
+	// Flash Shockwave
+	if ( $mime_type = 'application/x-shockwave-flash' ) { // or in_array( $ext, array( 'swf', 'flv' ) ) ) {
+		$html = do_shortcode( "[flashad src='$src' width='' height='']" );
 	}
 	
 	return $html;
-}
-add_filter( 'media_send_to_editor', 'administer_send_to_editor', 20, 3 );
+}*/
+//add_filter( 'media_send_to_editor', 'administer_send_to_editor', 20, 3 );
 
 // Deletes the specified advertisement from Ad-minister
 function administer_delete_ad( $id ) {

@@ -34,7 +34,7 @@
 			$content[$id]['ad_media_url'] = $_POST['ad_media_url'];
 			$content[$id]['ad_size'] = $_POST['ad_size'];
 			$content[$id]['ad_mode'] = $_POST['ad_mode'];
-			$content[$id]['ad_modes_synced'] = !empty( $_POST['ad_modes_synced'] ) ? 'checked ' : '';
+			//$content[$id]['ad_modes_synced'] = !empty( $_POST['ad_modes_synced'] ) ? 'checked ' : '';
 			
 			// Optional parameters
 			$content[$id]['ad_link_url'] = $_POST['ad_link_url'];
@@ -128,10 +128,10 @@
 							    <li><a id="mode_basic" name="mode_basic" href="">Basic</a></li>
 							    <li><a id="mode_advanced" name="mode_advanced" href="">Advanced</a></li>
 							</ul>
-							<div class="ad-modes-synced-wrapper">
-								<input <?php echo isset( $value['ad_modes_synced'] ) ? $value['ad_modes_synced'] : 'checked '; ?> type="checkbox" id="ad_modes_synced" name="ad_modes_synced" value="checked" title="Keep ad content syncronized across modes">
+							<!--<div class="ad-modes-synced-wrapper">
+								<input <?php //echo isset( $value['ad_modes_synced'] ) ? $value['ad_modes_synced'] : 'checked '; ?> type="checkbox" id="ad_modes_synced" name="ad_modes_synced" value="checked" title="Keep ad content syncronized across modes">
 								<span class="info">   Synchronize (Keep content in 'Basic' and 'Advanced' modes synchronized)</span>
-							</div>
+							</div>-->
 						</td>
 					</tr>
 					

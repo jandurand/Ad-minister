@@ -307,7 +307,7 @@ jQuery(document).ready(function() {
 	    $content.show();
 				
 			// Take certain actions depending on the mode selected
-			if (ad_modes_synced.attr('checked')) {
+			/*if (ad_modes_synced.attr('checked')) {
 				switch (ad_mode.val()) {
 					case 'mode_basic':
 						complete_basic_from_advanced();
@@ -319,7 +319,7 @@ jQuery(document).ready(function() {
 						complete_advanced_from_basic();	
 						break;
 				}
-			}
+			}*/
 				
 	    // Prevent the anchor's default click action
 	    e.preventDefault();
