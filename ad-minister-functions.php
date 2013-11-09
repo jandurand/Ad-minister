@@ -321,7 +321,7 @@ function administer_dashboard_widget_control() {
     if ( 'POST' == $_SERVER['REQUEST_METHOD'] && isset( $_POST[$form_id] ) ) {
       $event_period = absint( $_POST[$form_id]['event_period'] );
       
-	  update_option( 'administer_dashboard_period', $event_period );
+	  	update_option( 'administer_dashboard_period', $event_period );
       //$widget_options[$widget_id]['event_period'] = $event_period;
       //update_option( 'dashboard_widget_options', $widget_options ); // Update our dashboard widget options so we can access later
     }
@@ -371,31 +371,31 @@ function administer_load_widgets() {
 */
 class AdministerWidget extends WP_Widget {
 
-    function AdministerWidget() {
-        //Constructor
-        parent::WP_Widget(false, $name = 'Ad-minister', array('description' => 'Widget For Ad-minister Plugin.'));
-    }
+  function AdministerWidget() {
+    //Constructor
+    parent::WP_Widget(false, $name = 'Ad-minister', array('description' => 'Widget For Ad-minister Plugin.'));
+  }
 
-    function widget($args, $instance) {
-        // outputs the content of the widget
-        extract( $args );
-        $position = $instance['position'];
-        
-        echo $before_widget;
-				administer_display_position( $position );
-				echo $after_widget;
-    }
+  function widget($args, $instance) {
+    // outputs the content of the widget
+    extract( $args );
+    $position = $instance['position'];
+    
+    echo $before_widget;
+		administer_display_position( $position );
+		echo $after_widget;
+  }
 	
 	// Updates the widget
-    function update($new_instance, $old_instance) {
+  function update($new_instance, $old_instance) {
 		$instance = $old_instance;
 		$instance['title'] = $new_instance['title'];
 		$instance['position'] = $new_instance['position'];
 		return $instance;
-    }
+  }
 	
 	// Widget form in backend
-    function form($instance) {
+  function form($instance) {
 		global $wpdb; 
 	
         $position = esc_attr( $instance['position'] );
@@ -662,13 +662,13 @@ function administer_display_position( $pos ) {
 	// Ensure that we have at least 1 ad to display
 	if ( empty( $ad_ids ) ) return false;
 
-	if ( isset( $_SESSION['views'] ) and isset( $_SESSION['administer_key'] ) ) {
+	if ( isset( $_SESSION['administer_key'] ) ) {
 		// Use session info if available to select ad to display
 		for ( $i = 0; $i < count( $ad_ids ); ++$i )
 			for ( $j = 0; $j < $ad_weights[$i]; ++$j )
 				$temp_ids[] = $ad_ids[$i];
 		sort( $temp_ids );
-		$i = ( $_SESSION['administer_key'] + $_SESSION['views'] ) % count( $ad_ids );
+		$i = ( $_SESSION['administer_key'] ) % count( $ad_ids );
 		$ad = $content[$temp_ids[$i]]; 
 	}
 	else {
@@ -1140,11 +1140,11 @@ function administer_replace_thickbox_text($translated_text, $text, $domain) {
     return $translated_text;  
 }
 function administer_media_upload_setup() {  
-    global $pagenow;  
-    if ( 'media-upload.php' == $pagenow || 'async-upload.php' == $pagenow ) {  
-        // Now we'll replace the 'Insert into Post Button' inside Thickbox  
-        add_filter( 'gettext', 'administer_replace_thickbox_text', 1, 3 ); 
-    } 
+  global $pagenow;  
+  if ( 'media-upload.php' == $pagenow || 'async-upload.php' == $pagenow ) {  
+    // Now we'll replace the 'Insert into Post Button' inside Thickbox  
+    add_filter( 'gettext', 'administer_replace_thickbox_text', 1, 3 ); 
+  } 
 } 
 add_action( 'admin_init', 'administer_media_upload_setup' );
 ?>

@@ -89,6 +89,8 @@ function administer_enqueue_styles () {
 	if (ereg('page\=ad\-minister', $_SERVER['REQUEST_URI'])) {
 		// Enqueue Ad-minister style sheet 	
 		wp_enqueue_style( 'ad-minister', plugins_url( 'css/ad-minister.css', __FILE__ ) );
+		wp_enqueue_style( 'ui-lightness', get_stylesheet_directory_uri() . '/css/ui-lightness/jquery-ui-1.8.24.custom.css' );
+		//wp_enqueue_style( 'ui-lightness', get_stylesheet_directory_uri() . '/css/ui-lightness/jquery-ui-1.10.3.custom.min.css' );
 	}
 }
 add_action( 'admin_enqueue_scripts', 'administer_enqueue_styles', 20 );
@@ -132,8 +134,8 @@ function administer_enqueue_scripts ( $hook ) {
 	wp_enqueue_script( 'ad-minister' );	
 	
 	// Enqueue Flash Players
-	wp_enqueue_script( 'flowplayer', '/../flowplayer/flowplayer-3.2.12.min.js' );
-	wp_enqueue_script( 'swfobject', '/../swfobject/swfobject.js' );
+	wp_enqueue_script( 'flowplayer' );
+	wp_enqueue_script( 'swfobject' );
 	
 	if ( $page == 'ad-minister-banner' ) {
 		wp_enqueue_script('page');
@@ -166,4 +168,18 @@ function administer_enqueue_scripts ( $hook ) {
 	}	
 }
 add_action( 'admin_enqueue_scripts', 'administer_enqueue_scripts', 20 ); 
+
+function administer_session() {
+	if ( function_exists( 'session_status' ) ) {
+		if ( session_status() == PHP_SESSION_NONE ) {
+    	session_start();
+		}
+	}
+	else if ( session_id() == '' ) {
+		session_start();
+	}
+	
+	$_SESSION['administer_key'] = isset( $_SESSION['administer_key'] ) ? $_SESSION['administer_key'] + 1 : rand( 0, 20 );
+}
+add_action('init', 'administer_session', 1);
 ?>

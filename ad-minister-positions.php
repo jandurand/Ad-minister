@@ -56,10 +56,19 @@
 	}
 
 	$positions = get_post_meta(get_option('administer_post_id'), 'administer_positions', true);
-
+		
 	if (empty($positions))
 			echo '<div id="message" class="updated fade"><p><strong>' . __('Before you can add content you need to define some positions. These positions will be where your content appears.') . '</strong></p></div>';			
-	
+
+	if ($_POST['clear'] == 'Clear Template Positions') {
+		if (is_array($positions)) {
+			foreach ($positions as $position) {
+				if ($position['type'] == 'template') unset($positions[$position['position']]);
+			}
+			update_post_meta(get_option('administer_post_id'), 'administer_positions', $positions);	
+		}
+	}
+
 	$positions_t = array();
 	$positions_w = array();
 	if (is_array($positions)) {
@@ -171,13 +180,16 @@
 	<?php
 		}
 	} 
-	else { 
+	else {
 	?>
-		<form>
+		<form action='<?php echo administer_get_page_url( "positions" ); ?>' method='POST'>
 			<div id="positions">
 				<h3>Template Positions</h3>
 
 				<p><?php _e('These are the positions defined within the theme that you are using.', 'ad-minister'); ?></p>
+
+				<p><input type='submit' class='button' name='clear' value='<?php _e('Clear Template Positions'); ?>' /></p>
+				<!--<p><a class="button" href="<?php echo administer_get_page_url( "positions&action=clear_t"); ?>"><?php _e('Reset Template Positions'); ?></a></p>-->
 
 				<table class="widefat">
 					<thead>
@@ -210,7 +222,7 @@
 
 				<h3>Widget Positions</h3>
 				
-				<p><?php _e('Below are the Ad-minister widgets available to be <a href="widgets.php">placed your blog</a> (On the widget page the positions below starts with \'Ad: \' on as to identify them).', 'ad-minister'); ?></p>
+				<p><?php _e('Below are the Ad-minister widgets available to be <a href="widgets.php">placed on your blog</a> (On the widget page the positions below start with \'Ad: \'.', 'ad-minister'); ?></p>
 
 				<div id="positions">
 					<table class="widefat">
@@ -236,7 +248,7 @@
 						</tbody>
 					</table>	
 				</div>
-				<p><a href="<?php administer_get_page_url( "positions&action=edit" ); ?>">Add new widget position</a></p>
+				<p><a href="<?php echo administer_get_page_url( "positions&action=edit" ); ?>">Add new widget position</a></p>
 		</form>
 	<?php
 	}
