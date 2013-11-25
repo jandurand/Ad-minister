@@ -28,7 +28,6 @@ Author: Henrik Melin, Kal Ström, Jan Durand
        
 */
 
-
 require_once ( 'ad-minister-functions.php' );
 
 // Theme action
@@ -85,19 +84,8 @@ add_action('init', 'administer_do_redirect', 11);
 
 add_action('administer_stats', 'administer_template_stats');
 
-function administer_enqueue_styles () {
-	if (ereg('page\=ad\-minister', $_SERVER['REQUEST_URI'])) {
-		// Enqueue Ad-minister style sheet 	
-		wp_enqueue_style( 'ad-minister', plugins_url( 'css/ad-minister.css', __FILE__ ) );
-		wp_enqueue_style( 'ui-lightness', get_stylesheet_directory_uri() . '/css/ui-lightness/jquery-ui-1.8.24.custom.css' );
-		//wp_enqueue_style( 'ui-lightness', get_stylesheet_directory_uri() . '/css/ui-lightness/jquery-ui-1.10.3.custom.min.css' );
-	}
-}
-add_action( 'admin_enqueue_scripts', 'administer_enqueue_styles', 20 );
-
 function administer_enqueue_scripts ( $hook ) {
 	global $wpdb;
-	$page = $_GET['page'] ? $_GET['page'] : 'ad-minister-content';
 	
 	// Auto install
 	if (!get_option('administer_post_id') || !administer_ok_to_go()) {
@@ -115,26 +103,37 @@ function administer_enqueue_scripts ( $hook ) {
 		update_option('administer_post_id', $id);
 	}
 	
-	$content = administer_get_content();
-	$positions = get_post_meta(get_option('administer_post_id'), 'administer_positions', true);
+	$subject = $_SERVER['REQUEST_URI'];
+	$pattern = '/\?page\=(ad\-minister[^\&]*)/';
+	$matches = array();
+	if ( ! preg_match( $pattern, $subject, $matches ) ) return false;
+
+	$page = $_GET['page'] ? $_GET['page'] : 'ad-minister-content';
 
 	// Cannot show 'Banners' if there aren't any	
-	if ($page == 'ad-minister' && (!is_array($content) || empty($content))) $page = 'ad-minister-banner';
-
+	if ( $page == 'ad-minister' ) { 
+		$content = administer_get_content(); 
+		if ( ! is_array( $content ) || empty( $content ) ) $page = 'ad-minister-banner';
+	}
+	
 	// Cannot create a new banner if there are no positions
-	if ($page == 'ad-minister-banner' && (!is_array($positions) || empty($positions) ) ) $page = 'ad-minister-positions';
-
-	// If we're not installed, go to the settings for the setup.
-	if (!administer_ok_to_go() && $page != 'ad-minister-help') $page = 'ad-minister-settings';
+	if ( $page == 'ad-minister-banner' ) {
+		$positions = get_post_meta(get_option('administer_post_id'), 'administer_positions', true);
+		if ( ! is_array( $positions ) || empty( $positions ) ) $page = 'ad-minister-positions';
+	}
+	
+	// If we're not installed, go to the settings page for the setup.
+	if ( ! administer_ok_to_go() && $page != 'ad-minister-help' ) $page = 'ad-minister-settings';
 	
 	$_GET['page'] = $page;
 
 	// Enqueue common functions javascript
 	wp_register_script( 'ad-minister', plugins_url( 'js/ad-minister.js', __FILE__ ) );
-	wp_enqueue_script( 'ad-minister' );	
+	wp_enqueue_script( 'ad-minister' );
+	wp_enqueue_style( 'ad-minister', plugins_url( 'css/ad-minister.css', __FILE__ ) );	
 	
 	// Enqueue Flash Players
-	wp_enqueue_script( 'flowplayer' );
+	wp_enqueue_script( 'flowplayer', plugins_url( 'flowplayer/flowplayer-3.2.12.min.js', __FILE__ ) );
 	wp_enqueue_script( 'swfobject' );
 	
 	if ( $page == 'ad-minister-banner' ) {
@@ -145,16 +144,11 @@ function administer_enqueue_scripts ( $hook ) {
 		wp_enqueue_script('media-upload');
 		wp_enqueue_script('controls');
 		
-		// Enqueue jquery ui
-		/*wp_enqueue_script( 'jquery-ui', get_stylesheet_directory_uri() . '/js/jquery-ui-1.8.24.custom.min.js', array( 'jquery' ) );*/
-		wp_enqueue_script( 'jquery-ui', get_stylesheet_directory_uri() . '/js/jquery-ui-1.10.3.custom.min.js', array( 'jquery' ) );	
-		
 		// Enqueue style sheet for date picker fields
-		wp_enqueue_style( 'ui-lightness', get_stylesheet_directory_uri() . '/css/ui-lightness-old/jquery-ui-1.8.24.custom.css' );
-		/*wp_enqueue_style( 'ui-lightness', get_stylesheet_directory_uri() . '/css/ui-lightness/jquery-ui-1.10.3.custom.css' );*/
+		wp_enqueue_style( 'ui-lightness', plugins_url( 'css/ui-lightness/jquery-ui-1.8.24.custom.css', __FILE__ ) );
 		
 		// Enqueue jquery multiselect plugin
-		wp_enqueue_script( 'jquery-multiselect', plugins_url('js/jquery.multiselect.min.js', __FILE__), array( 'jquery', 'jquery-ui' ) );
+		wp_enqueue_script( 'jquery-multiselect', plugins_url('js/jquery.multiselect.min.js', __FILE__), array( 'jquery', 'jquery-ui-core' ) );
 		wp_enqueue_style( 'jquery-multiselect', plugins_url('css/jquery.multiselect.css', __FILE__) );
 		wp_enqueue_script( 'jquery-multiselect-filter', plugins_url('js/jquery.multiselect.filter.min.js', __FILE__), array( 'jquery-multiselect' ) );
 		wp_enqueue_style( 'jquery-multiselect-filter', plugins_url('css/jquery.multiselect.filter.css', __FILE__) );

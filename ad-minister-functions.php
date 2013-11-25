@@ -1015,19 +1015,24 @@ function flashad_func( $atts ) {
 		'height' => '' //get_post_meta( $post->ID, 'ad-minister-flash-ad-height', true )
 	), $atts ) );
 	
-	$width = $width ? $width . 'px' : '100%';
-	$height = $height ? $height . 'px' : '100%';
+	$width = $width ? $width . 'px' : '';
+	$height = $height ? $height . 'px' : '';
 	
 	$html = '<!-- [flashad: invalid shortcode attributes specified] -->';
 	if ( !empty( $src ) ) {
 		$ext = strtolower( pathinfo( $src, PATHINFO_EXTENSION ) );
  		switch ( $ext ) {
 			case 'swf':	
-				$html = "<object classid='clsid:D27CDB6E-AE6D-11cf-96B8-444553540000' width='$width' height='$height'><param name='movie' value='$src' /><param name='wmode' value='transparent' /><!--[if !IE]>--><object type='application/x-shockwave-flash' data='$src' width='$width' height='$height'><param name='wmode' value='transparent' /><!--<![endif]--><p>Flash Content Unavailable</p><!--[if !IE]>--></object><!--<![endif]--></object>";
+				$html = "<object id='swfobject$id' classid='clsid:D27CDB6E-AE6D-11cf-96B8-444553540000' width='$width' height='$height'><param name='movie' value='$src' /><param name='wmode' value='transparent' /><param name='loop' value='true' /><!--[if !IE]>--><object type='application/x-shockwave-flash' data='$src' width='$width' height='$height'><param name='wmode' value='transparent' /><param name='loop' value='true' /><!--<![endif]--><p>Flash Content Unavailable</p><!--[if !IE]>--></object><!--<![endif]--></object>";
+				
+				// Register SWF Object
+				$express_install_path = plugins_url( 'swfobject/expressInstall.swf', __FILE__ );
+				$html .= "<script type='text/javascript'>swfobject.registerObject('swfobject$id', '9', '$express_install_path');</script>";
 				break;
 				
 			case 'flv':
-				$html = "<div id='flvplayer$id' style='width:{$width};height:{$height}'></div><script language='JavaScript'>flowplayer('flvplayer$id', '/flowplayer/flowplayer-3.2.16.swf', { clip: { url: '$src', autoPlay: true, autoBuffering: true, linkUrl: '$linkUrl', linkWindow: '_blank' }, plugins: { controls: null }, buffering: false, onFinish: function() { this.stop(); this.play(); }, onBeforePause: function() { return false; } });</script>";
+				$flowplayer_path = plugins_url( 'flowplayer/flowplayer.swf', __FILE__ );
+				$html = "<div id='flvplayer$id' style='width:{$width};height:{$height}'></div><script type='text/javascript' language='JavaScript'>flowplayer('flvplayer$id', '$flowplayer_path', { clip: { url: '$src', autoPlay: true, autoBuffering: true, linkUrl: '$linkUrl', linkWindow: '_blank' }, plugins: { controls: null }, buffering: false, onFinish: function() { this.stop(); this.play(); }, onBeforePause: function() { return false; } });</script>";
 				break;
 		}
 	}
