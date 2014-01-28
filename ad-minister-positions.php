@@ -222,7 +222,7 @@
 
 				<h3>Widget Positions</h3>
 				
-				<p><?php _e('Below are the Ad-minister widgets available to be <a href="widgets.php">placed on your blog</a> (On the widget page the positions below start with \'Ad: \'.', 'ad-minister'); ?></p>
+				<p><?php _e('Below are the Ad-minister widgets available to be <a href="widgets.php">placed on your blog</a> (On the widget page the positions below start with \'Ad: \').', 'ad-minister'); ?></p>
 
 				<div id="positions">
 					<table class="widefat">

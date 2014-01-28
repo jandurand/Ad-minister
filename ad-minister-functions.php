@@ -468,8 +468,7 @@ function administer_template_action ($args) {
 	} else {
 		if (array_key_exists($args['position'], $positions)) {
 		 	$diff = array_diff($positions[$args['position']], $args);
-		 	if (!empty($diff)) $edit_position = true;
-			else $edit_position = false;
+		 	$edit_position = ( ! empty( $diff ) ); 
 		}
 		else $edit_position = true;
 	}
@@ -529,29 +528,45 @@ function administer_is_visible($ad) {
 **   Build advertisement code from stored information.
 */
 function administer_build_code( $ad ) {
-	if ( !( $ad['ad_mode'] == 'mode_basic' and $ad['ad_media_url'] ) ) return '';
+	$defaults = array(
+	'title' => '',
+	'ad_mode' => 'advance',
+	'ad_media_url' => ''
+	);
+	$ad = wp_parse_args( $ad, $defaults );
+	extract( $ad );
+
+	if ( $ad_mode !== 'mode_basic' ) return '';
 	
-	$media_url = $ad['ad_media_url'];
+	$ad_media_url = esc_url( trim( $ad_media_url ) );
 	
-	if ( !$ad['ad_size'] ) {
-		list( $width, $height ) = getimagesize( $media_url );
-		$width = $width == 0 ? '' : $width;
-		$height = $height == 0 ? '' : $height;
+	if ( !$ad_media_url ) return '';
+	
+	$title = esc_js( $title );
+	
+	if ( !$ad_size ) {
+		list( $width, $height ) = getimagesize( $ad_media_url );
+		$width = ( $width == 0 ) ? '' : $width;
+		$height = ( $height == 0 ) ? '' : $height;
 	}
 	else {
-		list( $width, $height ) = explode( 'x', $ad['ad_size'] );
+		list( $width, $height ) = explode( 'x', $ad_size );
 	}
 	
-	$link_url = trim( $ad['ad_link_url'] );
-	if ( $link_url ) {
-		$link_url = '%tracker%' . urlencode( str_replace( '%tracker%', '', $link_url ) );
+	$ad_link_url = esc_url( trim( $ad_link_url ) );
+	if ( $ad_link_url ) {
+		$ad_link_url = '%tracker%' . urlencode( str_replace( '%tracker%', '', $ad_link_url ) );
 	}
 	
-	$audio_url = $ad['ad_audio_url'];
+	$ad_audio_url = esc_url( trim( $ad_audio_url ) );
 	
-	$ad_hint = $ad['ad_hint'];
-	
-	$ext = strtolower( pathinfo( $media_url, PATHINFO_EXTENSION ) );
+	$ad_hint = esc_attr( trim( $ad_hint ) );
+		
+	// Set up Google Analytics Tracking Events
+	$ga_onload = $title ? "_gaq.push([\'_trackEvent\', \'Advertisement\', \'Impression\', \'$title\']);" : '';
+	$ga_onclick = $title ? "_gaq.push([\'_trackEvent\', \'Advertisement\', \'Click\', \'$title\']);" : '';
+
+	$ext = strtolower( pathinfo( $ad_media_url, PATHINFO_EXTENSION ) );
 	switch ( $ext ) {
 		case 'jpg':
 		case 'jpeg':
@@ -560,21 +575,30 @@ function administer_build_code( $ad ) {
 		case 'png':
 		case 'tif':
 		case 'tiff':
-			$code = "<img title='$ad_hint' src='$media_url' width='$width' height='$height' />";
-			$code = $link_url ? "<a title='$ad_hint' href='$link_url' target='_blank'>$code</a>" : $code;
+			$code = "<img title='$ad_hint' src='$ad_media_url' width='$width' height='$height' onload=\"$ga_onload\" />";
+			$code = $ad_link_url ? "<a title='$ad_hint' href='$ad_link_url' target='_blank' onclick=\"$ga_onclick\">$code</a>" : $code;
 			break;
 		
 		case 'swf':
 		case 'flv':
-			$code = do_shortcode( "[flashad id={$ad['id']} src='$media_url' width='$width' height='$height']" );
-			$code = !empty( $link_url ) ? $code . "<a title='$ad_hint' href='$link_url' target='_blank' class='flash-banner-link'></a>" : $code;
+			$args = array (
+			'id' => $id,
+			'src' => $ad_media_url,
+			'width' => $width,
+			'height' => $height,
+			'onload' => $ga_onload,
+			'onclick' => $ga_onclick
+ 			);
+			$code = flashad_func( $args );
+			//$code = do_shortcode( "[flashad id={$id} src='$ad_media_url' width='$width' height='$height']" ); // onload=\"$ga_onload\" onclick=\"$ga_onclick\"]" );
+			$code = $ad_link_url ? $code . "<a title='$ad_hint' href='$ad_link_url' target='_blank' class='flash-banner-link' onclick=\"$ga_onclick\"></a>" : $code;
 			break;
 		
 		default:
 			$code = '';
 	}
 	
-	if ( $audio_url ) $code .= "[esplayer url='$audio_url' width='$width' height='27']";
+	$code .= $ad_audio_url ? "[esplayer url='$ad_audio_url' width='$width' height='27']" : '';
 	
 	return $code;
 }
@@ -664,6 +688,7 @@ function administer_display_position( $pos ) {
 
 	if ( isset( $_SESSION['administer_key'] ) ) {
 		// Use session info if available to select ad to display
+		$temp_ids = array();
 		for ( $i = 0; $i < count( $ad_ids ); ++$i )
 			for ( $j = 0; $j < $ad_weights[$i]; ++$j )
 				$temp_ids[] = $ad_ids[$i];
@@ -1012,7 +1037,9 @@ function flashad_func( $atts ) {
 		'src' => '',
 		'linkUrl' => '',
 		'width' => '', //get_post_meta( $post->ID, 'ad-minister-flash-ad-width', true ),
-		'height' => '' //get_post_meta( $post->ID, 'ad-minister-flash-ad-height', true )
+		'height' => '', //get_post_meta( $post->ID, 'ad-minister-flash-ad-height', true )
+		'onclick' => '',
+		'onload' => ''
 	), $atts ) );
 	
 	$width = $width ? $width . 'px' : '';
@@ -1032,7 +1059,7 @@ function flashad_func( $atts ) {
 				
 			case 'flv':
 				$flowplayer_path = plugins_url( 'flowplayer/flowplayer.swf', __FILE__ );
-				$html = "<div id='flvplayer$id' style='width:{$width};height:{$height}'></div><script type='text/javascript' language='JavaScript'>flowplayer('flvplayer$id', '$flowplayer_path', { clip: { url: '$src', autoPlay: true, autoBuffering: true, linkUrl: '$linkUrl', linkWindow: '_blank' }, plugins: { controls: null }, buffering: false, onFinish: function() { this.stop(); this.play(); }, onBeforePause: function() { return false; } });</script>";
+				$html = "<div id='flvplayer$id' style='width:{$width};height:{$height}'></div><script type='text/javascript' language='JavaScript'>flowplayer('flvplayer$id', '$flowplayer_path', { clip: { url: '$src', autoPlay: true, autoBuffering: true, linkUrl: '$linkUrl', linkWindow: '_blank' }, plugins: { controls: null }, buffering: false, onLoad: function() { $onload }, onBeforeClick: function() { $onclick }, onFinish: function() { this.stop(); this.play(); }, onBeforePause: function() { return false; } });</script>";
 				break;
 		}
 	}

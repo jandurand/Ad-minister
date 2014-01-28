@@ -155,7 +155,7 @@ function administer_enqueue_scripts ( $hook ) {
 				
 		// Enqueue script to use media uploader and provide form validation
 		wp_enqueue_media();
-		wp_enqueue_script('ad-minister-banner', plugins_url('js/ad-minister-banner.js', __FILE__), array('jquery', 'jquery-multiselect', 'media-upload', 'thickbox', 'editor'));
+		wp_enqueue_script('ad-minister-banner', plugins_url('js/ad-minister-banner.js', __FILE__), array('jquery', 'jquery-multiselect', 'media-upload', 'thickbox', 'editor', 'swfobject' ));
 	}
 	else if ( $page == 'ad-minister' ) {
 		wp_enqueue_script('ad-minister-content', plugins_url( 'js/ad-minister-content.js', __FILE__ ), array('jquery'));
