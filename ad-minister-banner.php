@@ -95,7 +95,7 @@
 		}
 		
 		$checked_visible = ($value['show'] == 'true' || !$value['show']) ? 'checked="checked"' : ''; 
-		$checked_wrap = ($value['wrap'] == 'true' || !$value['wrap']) ? 'checked="checked"' : '';
+		$checked_wrap = 'checked="checked" disabled="disabled"'; //( ( $value['wrap'] == 'true' ) || !$value['wrap'] ) ? 'checked="checked"' : '';
 		?>
 
 		<?php $url = administer_get_page_url( "banner" ); ?>

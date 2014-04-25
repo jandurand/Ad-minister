@@ -746,12 +746,15 @@ function administer_display_position( $pos ) {
 	}
 		
 	// Display the content code with optional wrapping.
-	if ( $ad['wrap'] != 'false' ) { 
+	/*if ( $ad['wrap'] != 'false' ) { 
 		echo $wrapper_before . $code . $wrapper_after;
 	} 
 	else {
 		echo $code;
-	}
+	}*/
+	
+	// Always wrap content code with specified wrappers
+	echo $wrapper_before . $code . $wrapper_after;
 	
 	// Save the pageview
 	if ( get_option('administer_statistics') == 'true' ) {
