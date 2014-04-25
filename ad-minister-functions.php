@@ -258,10 +258,13 @@ function administer_dashboard_widget () {
 	$url = administer_get_page_url();
 	$period = get_option('administer_dashboard_period') * 86400;
 
+	$events_by_time = array();
 	$li_time_left = '';
 	$li_impressions = '';
 	$li_clicks = '';
-
+	$expiring_period = (float) get_option( 'administer_dashboard_period', 30 ) * 86400;
+	$almost_expired_period = 7 * 86400;
+	
 	foreach ($content as $con) {
 	
 		// Format impressions
@@ -282,14 +285,28 @@ function administer_dashboard_widget () {
 		
 		// Format start/end times
 		$time_left = administer_get_time_left( $con['scheduele'] );
-		$time_left_string = administer_get_time_left_string( $time_left );
-		if ( $time_left ) {
+		if ( $time_left && ( $time_left <= $expiring_period )  ) {
+			$time_left_string = administer_get_time_left_string( $time_left );
+			$link_style = $time_left <= $almost_expired_period ? 'style="color: #AA0000;"' : '';
 			$link_url .= $url . '&tab=upload&action=edit&id=' . $con['id'];
-			$link_style = $time_left < 0 ? 'style="color: #00AA00;"' : 'style="color: #AA0000;"';
-			$li_time_left .= '<li><a ' . $link_style . ' href="' . $link_url . '">' . $con['title'] . '</a> - ' . $time_left_string . '</li>';
+			$li_time_left = '<li><a ' . $link_style . ' href="' . $link_url . '">' . $con['title'] . '</a> - ' . $time_left_string . '</li>';
+			$events_by_time[] = array( 'time_left' => $time_left, 'li_time_left' => $li_time_left );
 		}
 	}
 
+	// Build list of upcoming expiration events
+    $li_time_left = '';
+	if ( $events_by_time ){
+		function sort_events_by_time( $a, $b ) {
+			return ( $a['time_left'] > $b['time_left'] );
+		}
+		usort( $events_by_time, "sort_events_by_time" );
+		
+		foreach ( $events_by_time as $event ) {
+			$li_time_left .= $event['li_time_left'];
+		}
+	}
+		
 	// Display dashboard widget 
 	if ( $li_time_left || $li_impressions || $li_clicks ) {
 		echo '<p><ul>';
