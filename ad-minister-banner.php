@@ -320,6 +320,21 @@
 					</tr>
 				</table>
 				
+				<p>
+					<!-- Save Button -->
+					<input id="save" name="save" class="button-primary" type="submit" value="<?php _e('Save', 'ad-minister'); ?>">
+						
+					<!-- Preview Button -->
+					<input id="preview-button" title="Advertisement Preview" class="button" type="button" value="Preview" />
+					
+					<?php if ( $_GET['action'] == 'edit' ) : ?>
+						<!--Delete Button -->
+						<input id="delete" name="delete" class="button" type="submit" value="<?php _e('Delete this', 'ad-minister'); ?>">
+					<?php endif; ?>
+				</p>
+				
+				<p><a href="<?php echo administer_get_page_url(); ?>" title="Go back to Banners page">Back to Banners</a></p>
+				
 				<div style="padding: 10px; margin-left: 170px;">
 					<input type="hidden" id="id" name="id" value="<?php echo $value['id']; ?>" />
 					<?php
@@ -336,17 +351,8 @@
 					?>
 					<input type="hidden" name="ad_mode" id="ad_mode" value="<?php echo $value['ad_mode']; ?>" />
 					
-					<!-- Save Button -->
-					<input id="save" name="save" class="button-primary" type="submit" value="<?php _e('Save', 'ad-minister'); ?>">
-					
-					<!-- Preview Button -->
-					<input id="preview-button" title="Advertisement Preview" class="button" type="button" value="Preview" />
-					<div id="ad-preview" style="display: none;"></div>
-				
-					<?php if ( $_GET['action'] == 'edit' ) : ?>
-						<!--Delete Button -->
-						<input id="delete" name="delete" class="button" type="submit" value="<?php _e('Delete this', 'ad-minister'); ?>">
-					<?php endif; ?>
+					<!-- Preview Window -->
+					<div id="ad-preview" style="display: none;"></div>					
 				</div>
 			</div>
 		</form>

@@ -166,7 +166,7 @@ add_action( 'admin_enqueue_scripts', 'administer_enqueue_scripts', 20 );
 function administer_session() {
 	if ( function_exists( 'session_status' ) ) {
 		if ( session_status() == PHP_SESSION_NONE ) {
-    	session_start();
+			session_start();
 		}
 	}
 	else if ( session_id() == '' ) {

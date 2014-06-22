@@ -15,4 +15,18 @@ jQuery(document).ready(function() {
 	    ;
 	  });
 	};
+	
+	// Positions Page
+	jQuery('input[type=checkbox]#rotate').change(function() {
+		var checked = jQuery(this).attr('checked');
+        if (checked) {
+			if (!jQuery('input#rotate_time').val()) {
+				jQuery('input#rotate_time').val(7);
+			}
+			jQuery('tr#positions_edit_rotate_time').show();
+		}
+		else {
+			jQuery('tr#positions_edit_rotate_time').hide();
+		}
+	});	
 });

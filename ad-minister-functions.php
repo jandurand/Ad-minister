@@ -14,7 +14,7 @@ function administer_main( $page ) {
 	// Check that our statistics are set up
 	$stats = administer_get_stats();
 	$content = administer_get_content();
-	$positions = get_post_meta(get_option('administer_post_id'), 'administer_positions', true);
+	$positions = administer_get_positions();
 	
 	// Load the relevant page
 	include("{$page}.php");
@@ -40,14 +40,16 @@ function administer_position_template ($position = array(), $nbr = 0) { echo adm
 function administer_get_position_template ($position = array(), $nbr = 0) { 
 	$key  = $position['position']; // p2m_meta('position_key_' . $nbr);
 	$desc = $position['description']; //p2m_meta('position_desc_' . $nbr);
-			
+	$rotating = ( ( $position['rotate'] == 'true' ) && ( $position['rotate_time'] ) ) ? 'Yes (' . $position['rotate_time'] . 's)' : 'No'; 
+	
 	// Set up css formatting
 	$class =  ($nbr % 2) ? '' : 'alternate';
 	$html = '
 			<tr class="%class%">
-				<td>' . $key . '</td>
+				<td style="white-space: nowrap;">' . $key . '</td>
 				<td>' . $desc . '</td>
 				<td>' . htmlentities($position['before']) . ' ' . htmlentities($position['after']) . '</td>
+				<td>' . $rotating . '</td>
 				<td>
 					<a href="%url_edit%">' . __('Edit', 'ad-minister') . '</a> |
 					<a href="%url_remove%">' . __('Remove', 'ad-minister') . '</a>
@@ -399,8 +401,8 @@ class AdministerWidget extends WP_Widget {
     $position = $instance['position'];
     
     echo $before_widget;
-		administer_display_position( $position );
-		echo $after_widget;
+	administer_display_position( $position );
+	echo $after_widget;
   }
 	
 	// Updates the widget
@@ -466,33 +468,40 @@ function administer_popuplate_widget_controls () { }
 **/
 function administer_template_action ($args) {
 
-	if (!($post_id = get_option('administer_post_id'))) return 0;
+	if ( !( $post_id = get_option('administer_post_id') ) ) return 0;
 
 	// It's OK only to pass the name of the position to be shown...
-	$position = (!is_array($args)) ? $args : '';	
+	$args = is_array( $args ) ? $args : array( 'position' => $args );
 	
-	$defaults = array('position' => $position, 'description' => '', 'before' => '', 'after' => '', 'type' => 'template');
+	$defaults = array('position' => '', 'description' => '', 'before' => '', 'after' => '', 'rotate' => 'false', 'rotate_time' => 7, 'type' => 'template');
 	$args = wp_parse_args($args, $defaults);
 
 	// Ignore empty calls
-	if (!$args['position']) return '';
+	if ( !$args['position'] ) return '';
 
-	$positions = get_post_meta($post_id, 'administer_positions', true);
+	$positions = get_post_meta( $post_id, 'administer_positions', true );
 
-	if (!is_array($positions)) {
-			$positions = array();
-			$edit_position = true;
+	if ( !is_array( $positions ) ) {
+		$positions = array();
+		$edit_position = true;
 	} else {
-		if (array_key_exists($args['position'], $positions)) {
-		 	$diff = array_diff($positions[$args['position']], $args);
-		 	$edit_position = ( ! empty( $diff ) ); 
+		if ( array_key_exists( $args['position'], $positions ) ) {
+		 	// Keep changes made to certain fields
+			$fieldnames = array( 'rotate', 'rotate_time' ); 
+			foreach ( $fieldnames as $fieldname ) {
+				if ( isset( $positions[$args['position']][$fieldname] ) ) {
+					$args[$fieldname] = $positions[$args['position']][$fieldname];
+				}
+			}
+			
+			$diff = array_diff_assoc( $positions[$args['position']], $args );
+			$edit_position = ( ! empty( $diff ) ); 
 		}
 		else $edit_position = true;
 	}
 
 	// If anything has changed, then update our database
-	if ($edit_position) {
-	
+	if ( $edit_position ) {
 		$positions[$args['position']] = $args; 
 		
 		// Save to a Custom Field
@@ -500,7 +509,7 @@ function administer_template_action ($args) {
 			update_post_meta($post_id, 'administer_positions', $positions);		
 	}
 
-	administer_display_position($args['position']);
+	administer_display_position( $args['position'] );
 }
 
 /*
@@ -580,9 +589,16 @@ function administer_build_code( $ad ) {
 	$ad_hint = esc_attr( trim( $ad_hint ) );
 		
 	// Set up Google Analytics Tracking Events
-	$ga_onload = $title ? "_gaq.push([\'_trackEvent\', \'Advertisement\', \'Impression\', \'$title\']);" : '';
-	$ga_onclick = $title ? "_gaq.push([\'_trackEvent\', \'Advertisement\', \'Click\', \'$title\']);" : '';
+	
+	// Old Google Analytics Code
+	/*$ga_onload = $title ? "_gaq.push([\'_trackEvent\', \'Advertisement\', \'Impression\', \'$title\']);" : '';
+	$ga_onclick = $title ? "_gaq.push([\'_trackEvent\', \'Advertisement\', \'Click\', \'$title\']);" : '';*/
+	
+	// Set up Universal Analytics Tracking Code
+	$ga_onload = $title ? "ga(\'send\', \'event\', \'Advertisement\', \'Impression\', \'$title\');" : '';
+	$ga_onclick = $title ? "ga(\'send\', \'event\', \'Advertisement\', \'Click\', \'$title\');" : '';
 
+	
 	$ext = strtolower( pathinfo( $ad_media_url, PATHINFO_EXTENSION ) );
 	switch ( $ext ) {
 		case 'jpg':
@@ -678,22 +694,87 @@ function administer_get_ad_code( $ad_id ) {
 }
 
 /*
+**   administer_get_display_code ( )
+**
+**   Returns the display code for a specified ad in given position.
+*/
+if ( !function_exists( 'administer_get_display_code' ) ) {
+	function administer_get_display_code( $ad, $position ) {
+		
+		// Get advertisement code
+		$code = administer_get_ad_code( $ad['id'] );
+		
+		// Replace click tracker place-holder
+		if ( false !== strpos( $code, '%tracker%' ) ) {
+			if ( get_option( 'administer_statistics' ) == 'true' ) {
+				$code = str_replace( '%tracker%', administer_tracker_url( $ad['id'] ), $code );
+			} else { 
+				$code = str_replace( '%tracker%', '', $code );
+			}
+		}	
+
+		// Make ampersands validate
+		$code = preg_replace( '/&([^#])(?![a-zA-Z1-4]{1,8};)/', '&amp;$1', $code );	
+		
+		// Get content wrapper
+		$wrapper_before = $position['before'];	
+		$wrapper_after = $position['after'];
+		
+		// Add id attribute to wrapper container
+		$wrapper_id = " id='ad-{$ad['id']}'";
+		$wrapper_start = '<div';
+		if ( substr( $wrapper_before, 0, strlen( $wrapper_start ) ) === $wrapper_start ) {
+			$wrapper_before = str_replace( $wrapper_start, $wrapper_start . $wrapper_id, $wrapper_before );
+		}
+			
+		// Display the content code with optional wrapping.
+		/*if ( $ad['wrap'] != 'false' ) { 
+			echo $wrapper_before . $code . $wrapper_after;
+		} 
+		else {
+			echo $code;
+		}*/
+		
+		// Always wrap content code with specified wrappers
+		$code = $wrapper_before . $code . $wrapper_after;
+		
+		// Register click/view events through Google Analytics
+		$code .= 
+		"<script type='text/javascript' language='javascript'>
+		jQuery('#ad-{$ad['id']}').ready(function() {
+			var _gaq = _gaq || [];
+			_gaq.push(['_trackEvent', 'Advertisements', 'View', '{$ad['title']}']);
+		});
+		jQuery('#ad-{$ad['id']} a').click(function() {
+			var _gaq = _gaq || [];
+			_gaq.push(['_trackEvent', 'Advertisements', 'Click', '{$ad['title']}']);
+		});
+		</script>";
+		
+		return $code;
+	}
+}
+		
+
+/*
 **   administer_display_position ( )
 **
 **   Show a position, randomize weighted content and log.
 */
-function administer_display_position( $pos ) {
+function administer_display_position( $position ) {
+
+	$positions = administer_get_positions();
+	if ( empty( $positions ) ) return false;
+
+	$content = administer_get_content();
+	if ( empty( $content ) ) return false;
 
 	// Display the content
-	if ( !( $post_id = get_option('administer_post_id') ) ) return false;
-	$content = get_post_meta( $post_id, 'administer_content', true );
-	if ( !is_array( $content ) || empty( $content ) ) return false;
-	
 	$ad_ids = array();
 	$ad_weights = array();
 	foreach ( $content as $ad_id => $ad ) {
 		$ad['position'] = !is_array( $ad['position'] ) ? array( $ad['position'] ) : $ad['position']; 
-		if ( !( in_array( $pos, $ad['position'] ) and administer_is_visible( $ad ) ) ) continue;
+		if ( !( in_array( $position, $ad['position'] ) and administer_is_visible( $ad ) ) ) continue;
 		
 		// Consider ad for display if its in this position and visible	
 		$ad_ids[] = $ad_id;
@@ -718,72 +799,30 @@ function administer_display_position( $pos ) {
 		$ad = $content[array_rand_weighted( $ad_ids, $ad_weights )];
 	}
 	
-	// Get advertisement code
-	$code = administer_get_ad_code( $ad['id'] );
-	
-	// Replace click tracker placeholder
-	if ( false !== strpos( $code, '%tracker%' ) ) {
-		if ( get_option( 'administer_statistics' ) == 'true' ) {
-			$code = str_replace( '%tracker%', administer_tracker_url( $ad['id'] ), $code );
-		} else { 
-			$code = str_replace( '%tracker%', '', $code );
+	if ( ( $positions[$position]['rotate'] == 'true' ) && ( $positions[$position]['rotate_time'] ) ) {
+		$slide_content = array( administer_get_display_code( $ad, $positions[$position] ) );
+		foreach ( $ad_ids as $ad_id ) {
+			if ( $ad_id == $ad['id'] ) continue;
+			$slide_content[] = administer_get_display_code( $content[$ad_id], $positions[$position] );
 		}
-	}	
-
-	// Make amersands validate
-	$code = preg_replace( '/&([^#])(?![a-zA-Z1-4]{1,8};)/', '&amp;$1', $code );	
-	
-	// Get content wrapper
-	$positions = get_post_meta($post_id, 'administer_positions', true);
-	$wrapper_before = $positions[$pos]['before'];	
-	$wrapper_after = $positions[$pos]['after'];
-	
-	// Add id attribute to wrapper container
-	$wrapper_id = " id='ad-{$ad['id']}'";
-	$wrapper_start = '<div';
-	if ( substr( $wrapper_before, 0, strlen( $wrapper_start ) ) === $wrapper_start ) {
-		$wrapper_before = str_replace( $wrapper_start, $wrapper_start . $wrapper_id, $wrapper_before );
-	}
+		$args = array(
+		'slide_content' => $slide_content,
+		'time_ms' => ( $positions[$position]['rotate_time'] * 1000 ),
+		'show_nav_panel' => false,
+		'show_loading_image' => false
+		);
 		
-	// Display the content code with optional wrapping.
-	/*if ( $ad['wrap'] != 'false' ) { 
-		echo $wrapper_before . $code . $wrapper_after;
-	} 
+		return preview_slider( $args );
+	}
 	else {
-		echo $code;
-	}*/
+		echo administer_get_display_code( $ad, $positions[$position] );
+	}
 	
-	// Always wrap content code with specified wrappers
-	echo $wrapper_before . $code . $wrapper_after;
-	
-	// Save the pageview
+	// Save the page view
 	if ( get_option('administer_statistics') == 'true' ) {
 		administer_register_impression( $ad['id'] );
-
-		global $current_user;
-		get_currentuserinfo();
-		$roles = array( 'administrator', 'editor', 'author', 'contributor' );
-		foreach ( $roles as $role ) {
-			if ( user_can( $current_user->ID, $role ) ) return true;
-		}				
 	}
 	
-	// Register click/view events through Google Analytics
-	?>
-	
-	<script type="text/javascript">
-	jQuery('#ad-<?php echo "{$ad['id']}"; ?>').ready(function() {
-		var _gaq = _gaq || [];
-		_gaq.push(['_trackEvent', 'Advertisements', 'View', '<?php echo $ad['title']; ?>']);
-	});
-	jQuery('#ad-<?php echo "{$ad['id']} a"; ?>').click(function() {
-		var _gaq = _gaq || [];
-		_gaq.push(['_trackEvent', 'Advertisements', 'Click', '<?php echo $ad['title']; ?>']);
-	});
-	</script>
-	
-	<?php
-
 	return true;
 }
 
@@ -1074,7 +1113,7 @@ function flashad_func( $atts ) {
 				
 				// Register SWF Object
 				$express_install_path = plugins_url( 'swfobject/expressInstall.swf', __FILE__ );
-				$html .= "<script type='text/javascript'>swfobject.registerObject('swfobject$id', '9', '$express_install_path');</script>";
+				$html .= "<script type='text/javascript' language='javascript'>swfobject.registerObject('swfobject$id', '9', '$express_install_path');</script>";
 				break;
 				
 			case 'flv':
@@ -1117,10 +1156,16 @@ function administer_delete_ad( $id ) {
 	administer_reset_stats( $id );
 }
 
-// Returns an array containg all Ad-minister ad content
+// Returns an array containing all Ad-minister ad content
 function administer_get_content() {
 	$content = get_post_meta( get_option( 'administer_post_id' ), 'administer_content', true );
 	return is_array( $content ) ? $content : array();
+}
+
+// Returns an array containing all Ad-minister ad positions
+function administer_get_positions() {
+	$positions = get_post_meta( get_option( 'administer_post_id' ), 'administer_positions', true );
+	return is_array( $positions ) ? $positions : array();
 }
 
 // Updates the Ad-minister ad content with the given content
@@ -1133,7 +1178,7 @@ function administer_get_page_url( $page = '' ) {
 		$page = 'ad-minister';
 	else if ( strpos( $page, 'ad-minister-' ) === false )
 		$page = 'ad-minister-' . $page;
-	return get_option( 'siteurl' ) . "/wp-admin/admin.php?page=$page";
+	return get_admin_url() . "admin.php?page=$page";
 }
 
 function administer_reset_stats( $id = NULL ) {
