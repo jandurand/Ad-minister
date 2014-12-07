@@ -2,6 +2,7 @@ jQuery(document).ready(function() {
 	var mode, formfield;
 	
 	// Ad-minister 'Create Content' form controls
+	var ad_id = jQuery('#id');
 	var ad_title = jQuery('#title');
 	var	ad_title_info = jQuery('#title_info');
 	var	ad_media_url = jQuery('#ad_media_url');
@@ -507,6 +508,7 @@ jQuery(document).ready(function() {
 		var data = { 
 			action: 'administer_build_code',
 			ad_mode : 'mode_basic',
+			ad_id : ad_id.val(), 
 			ad_media_url : ad_media_url.val(),
 			ad_size : ad_size.val(),
 			ad_link_url : ad_link_url.val(),

@@ -10,8 +10,7 @@
 	if ($_POST['save']) {			
 		if ($name = $_POST['position']) {
 			$ok = true;
-			$positions = get_post_meta(get_option('administer_post_id'), 'administer_positions', true);
-			if (!is_array($positions)) $positions = array();
+			$positions = administer_get_positions();
 			if ($_POST['edit_position'] != $name) {
 				if (array_key_exists($name, $positions)) {
 					echo '<div id="message" class="updated fade"><p><strong>' . __('That position name already exists!') . '</strong></p></div>';
@@ -25,10 +24,9 @@
 				$positions[$name]['after'] = stripslashes($_POST['after']);
 				$positions[$name]['rotate'] = stripslashes($_POST['rotate']) ? 'true' : 'false';
 				$positions[$name]['rotate_time'] = stripslashes($_POST['rotate_time']) ? stripslashes($_POST['rotate_time']) : $rotate_time_default;
-				if (!$positions[$name]['type']) $positions[$name]['type'] = 'widget';
-				if (!update_post_meta(get_option('administer_post_id'), 'administer_positions', $positions)) {	
-					add_post_meta(get_option('administer_post_id'), 'administer_positions', $positions);
-				}
+				if ( ! $positions[$name]['type'] ) $positions[$name]['type'] = 'widget';
+				administer_update_positions( $positions );
+				$_GET['key'] = $positions[$name]['position'];
 				echo '<div id="message" class="updated fade"><p><strong>' . __('Position saved.') . '</strong></p></div>';
 			} 
 		}
@@ -36,12 +34,12 @@
 	
 	if ($_POST['action'] == 'confirm_delete') {
 		if ($key = $_POST['key']) {
-			$positions = get_post_meta(get_option('administer_post_id'), 'administer_positions', true);
+			$positions = administer_get_positions();
 			if (array_key_exists($key, $positions)) {
 
 				// Remove the position
 				unset($positions[$key]);
-				update_post_meta(get_option('administer_post_id'), 'administer_positions', $positions);
+				administer_update_positions( $positions );
 
 				// Orphane content if required
 				foreach ($content as $con) {
@@ -58,17 +56,17 @@
 	
 	}
 
-	$positions = get_post_meta(get_option('administer_post_id'), 'administer_positions', true);	
+	$positions = administer_get_positions();
 	
 	if (empty($positions))
-			echo '<div id="message" class="updated fade"><p><strong>' . __('Before you can add content you need to define some positions. These positions will be where your content appears.') . '</strong></p></div>';			
+		echo '<div id="message" class="updated fade"><p><strong>' . __('Before you can add content you need to define some positions. These positions will be where your content appears.') . '</strong></p></div>';			
 
 	if ($_POST['clear'] == 'Clear Template Positions') {
 		if (is_array($positions)) {
 			foreach ($positions as $position) {
 				if ($position['type'] == 'template') unset($positions[$position['position']]);
 			}
-			update_post_meta(get_option('administer_post_id'), 'administer_positions', $positions);	
+			administer_update_positions( $positions );
 		}
 	}
 
@@ -88,7 +86,7 @@
 
 	<?php 
 	if ($_GET['action'] == 'edit') { 
-		$position = ($key = $_GET['key']) ? $positions[$key] : array();
+		$position = ( $key = $_GET['key'] ) ? $positions[$key] : array();
 		$checked_rotate = ( $position['rotate'] == 'true' ) ? 'checked="checked"' : ''; 
 	?>
 
@@ -141,7 +139,7 @@
 	<?php 
 	} 
 	else if ($_GET['action'] == 'delete') {
-		$positions = get_post_meta(get_option('administer_post_id'), 'administer_positions', true);
+		$positions = administer_get_positions();
 		$position = ($key = $_GET['key']) ? $positions[$key] : array();
 	
 		$nbr = 0;
