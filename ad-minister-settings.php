@@ -19,7 +19,7 @@
 		update_option('administer_user_level', $_POST['administer_user_level']);
 		
 		// Checkboxes...
-		$names = array('administer_make_widgets', 'administer_dashboard_show', 'administer_statistics', 'administer_google_analytics');
+		$names = array( 'administer_make_widgets', 'administer_dashboard_show', 'administer_statistics', 'administer_google_analytics', 'administer_rotate_ads' );
 		foreach ( $names as $name ) {
 			$value = ( $_POST[$name] == 'on' ) ? 'true' : 'false';
 			update_option( $name, $value );		
@@ -34,6 +34,9 @@
 		update_option('administer_statistics', 'true');
 
 	if (!strlen(get_option('administer_google_analytics')))
+		update_option('administer_google_analytics', 'true');
+
+	if (!strlen(get_option('administer_rotate_ads')))
 		update_option('administer_google_analytics', 'true');
 		
 	if (!strlen(get_option('administer_dashboard_show'))) 
@@ -95,6 +98,12 @@
 			 	<th scope="row" valign="top"><?php _e('Google Analytics', 'ad-minister'); ?></th>
 			 	<td>
 					<input type="checkbox" id="administer_google_analytics" name="administer_google_analytics" <?php if (get_option('administer_google_analytics') == 'true') echo ' checked="checked"'; ?> /> <label for="administer_google_analytics"><?php _e('Log content clicks through Google Analytics?', 'ad-minister'); ?></label>
+			 	</td>
+			 </tr>
+			 <tr>
+			 	<th scope="row" valign="top"><?php _e('Ad Rotation', 'ad-minister'); ?></th>
+			 	<td>
+					<input type="checkbox" id="administer_rotate_ads" name="administer_rotate_ads" <?php if ( get_option( 'administer_rotate_ads' ) == 'true' ) echo ' checked="checked"'; ?> /> <label for="administer_rotate_ads"><?php _e('Allow multiple advertisements to rotate in a single position within a singe page load?', 'ad-minister'); ?></label>
 			 	</td>
 			 </tr>
 			 <tr>

@@ -1,7 +1,7 @@
 <?php
 
 // Include Matthew Ruddy's image resize function
-require_once( 'script/resize/resize.php' );
+//require_once( 'script/resize/resize.php' );
 
 /*
 **    administer_main ( )
@@ -531,7 +531,7 @@ function administer_template_action ($args) {
 **
 **   Determine whether or not content is visible.
 */
-function administer_is_visible($ad) {
+function administer_is_visible( $ad ) {
 
 	// Is the option to show the content ticked.
 	if ($ad['show'] == 'false') return false; 
@@ -581,12 +581,12 @@ function administer_resize_image( $args ) {
 	);
 	$args = wp_parse_args( $args, $defaults );
 	extract( $args );	
-
+	
 	if ( ! $src )
 		return '';
 	
 	// Use timthumb script
-	$src = '/thumbs/timthumb.php?' . ( $quality ? 'q=' . $quality : '' ) . ( $width ? '&amp;w=' . $width : '' ) . ( $height ? '&amp;h=' . $height : '' ) . '&amp;zc=0&amp;src=' . $src;	
+	//$src = '/thumbs/timthumb.php?' . ( $quality ? 'q=' . $quality : '' ) . ( $width ? '&amp;w=' . $width : '' ) . ( $height ? '&amp;h=' . $height : '' ) . '&amp;zc=0&amp;src=' . $src;	
 	
 	/*
 	// Use Matthew Ruddy's function declared in script/resize/resize.php
@@ -800,15 +800,9 @@ function administer_build_code( $args ) {
 	
 	$ad_media_url = esc_url( trim( $ad_media_url ) );
 	
-	if ( !$ad_media_url ) return '';
+	if ( ! $ad_media_url ) return '';
 	
-	if ( ! isset( $_REQUEST['administer_displaycount'] ) ) {
-		$_REQUEST['administer_displaycount'] = 0;
-	} else {
-		$_REQUEST['administer_displaycount'] += 1;
-	}
-	
-	if ( !$ad_size ) {
+	if ( ! $ad_size ) {
 		list( $width, $height ) = getimagesize( $ad_media_url );
 		$width = ( $width == 0 ) ? '' : $width;
 		$height = ( $height == 0 ) ? '' : $height;
@@ -928,10 +922,9 @@ function administer_get_ad_code( $ad_id ) {
 	if ( ! administer_get_post_id() ) return;	
 	if ( ! ( $content = administer_get_content() ) ) return;
 	
-	$ad = $content[$ad_id];
-	
 	// Get advertisement code
-	if ( !( $ad['ad_mode'] ) ) {
+	$ad = $content[$ad_id];
+	if ( ! ( $ad['ad_mode'] ) ) {
 		$ad['ad_mode'] = 'mode_advanced';
 		$content[$ad_id] = $ad;
 		administer_update_content( $content );
@@ -958,11 +951,9 @@ if ( !function_exists( 'administer_get_display_code' ) ) {
 		$args = wp_parse_args( $args, $defaults );
 		extract( $args );
 		
-		if ( ! $ads ) 
-			return '';
+		if ( ! $ads ) return '';
 			
-		if ( ! $position )
-			return '';
+		if ( ! $position ) return '';
 		
 		$code_blocks = array();
 		foreach ( $ads as $key => $ad ) {
@@ -1046,7 +1037,37 @@ if ( !function_exists( 'administer_get_rotate_display_code' ) ) {
 		return $code;
 	}
 }
-		
+
+/*
+**	administer_get_visible_ads ( $position )
+**
+**	Return array of visible ads in this position.
+*/
+
+function administer_get_visible_ads( $position ) {
+	
+	if ( ! $position ) return;
+	
+	if ( ! ( $positions = administer_get_positions() ) ) return;
+
+	if ( ! ( $content = administer_get_content() ) ) return;
+	
+	$ads = array();
+	foreach ( $content as $ad ) {
+		// Ensure ad is visible
+		if ( ! administer_is_visible( $ad ) ) continue;
+				
+		// Ensure ad is in specified position
+		$ad['position'] = is_array( $ad['position'] ) ? $ad['position'] : array( $ad['position'] ); 	
+		if ( ! in_array( $position, $ad['position'] ) ) continue;		
+
+		$ad['weight'] = $ad['weight'] ? $ad['weight'] : 1;
+		$ads[] = $ad;
+	}
+
+	return $ads;
+	
+}	
 		
 /*
 **   administer_display_position ( )
@@ -1054,49 +1075,32 @@ if ( !function_exists( 'administer_get_rotate_display_code' ) ) {
 **   Show a position, randomize weighted content and log.
 */
 function administer_display_position( $position ) {
-
-	$positions = administer_get_positions();
-	if ( empty( $positions ) ) return false;
-
-	$content = administer_get_content();
-	if ( empty( $content ) ) return false;
-
-	// Get ads eligible for display in this ad position
-	$ads = array();
-	foreach ( $content as $ad ) {
-		if ( ! is_array( $ad['position'] ) )
-			$ad['position'] = array( $ad['position'] ); 
-		
-		// Consider ad for display if its in this position and visible	
-		if ( in_array( $position, $ad['position'] ) and administer_is_visible( $ad ) ) {		
-			if ( ! $ad['weight'] )
-				$ad['weight'] = 1;
-			$ads[] = $ad;
-		}
-	}
 	
-	// Ensure that we have at least 1 ad to display
-	if ( empty( $ads ) ) return false;
-
+	if ( ! $position ) return;
+	if ( ! ( $positions = administer_get_positions() ) ) return;	
+	
+	// Get visible ads in this ad position
+	if ( ! ( $ads = administer_get_visible_ads( $position ) ) ) return false;
+	
+	// Build weighted array of ad keys
+	$ad_keys = array();
+	foreach ( $ads as $key => $ad )
+		$ad_keys = array_merge( $ad_keys, array_fill( 0, $ad['weight'], $key ) );	
+	sort( $ad_keys );
+	
+	// Select ad to display
 	$ad_key = 0;
 	if ( isset( $_SESSION['administer_key'] ) ) {
 		// Use session info if available to select ad to display
-		$ad_keys = array();
-		foreach ( $ads as $key => $ad )
-			$ad_keys = $ad_keys + array_fill( 0, $ad['weight'], $key );
-		
-		sort( $ad_keys );
 		$ad_key = ( $_SESSION['administer_key'] ) % count( $ad_keys ); 
 	}
 	else {
 		// Randomly select an ad taking weight into consideration
-		$ad_keys = array_keys( $ads );
-		$ad_weights = array_column( $ads, 'weight' );
-		$ad_key = array_rand_weighted( $ad_keys, $ad_weights );
+		$ad_key = array_rand( $ad_keys );
 	}
-	
 	$ad = $ads[$ad_key];
-	if ( ( $positions[$position]['rotate'] == 'true' ) && ( $positions[$position]['rotate_time'] ) )  {
+	
+	if ( ( get_option( 'administer_rotate_ads' ) == 'true' ) && ( $positions[$position]['rotate'] == 'true' ) && ( $positions[$position]['rotate_time'] ) )  {
 		unset( $ads[$ad_key] );
 		array_unshift( $ads, $ad );	
 	}
@@ -1111,6 +1115,12 @@ function administer_display_position( $position ) {
 		// Save the page view
 		if ( get_option('administer_statistics') == 'true' ) {
 			administer_register_impression( $ad['id'] );
+		}
+		
+		if ( ! isset( $_REQUEST['administer_displaycount'] ) ) {
+			$_REQUEST['administer_displaycount'] = 0;
+		} else {
+			$_REQUEST['administer_displaycount'] += 1;
 		}
 		
 	}
@@ -1155,7 +1165,6 @@ function administer_register_impression($id) {
 	if ( ! isset( $id ) ) return;	
 	
 	global $administer_stats; 
-	$administer_stats = administer_get_stats();
 	if ( ! isset( $administer_stats[$id]['i'] ) ) $administer_stats[$id]['i'] = 0;
 	$administer_stats[$id]['i']++;
 }
@@ -1171,7 +1180,6 @@ function administer_register_click( $id ) {
 	if ( ! isset( $id ) ) return;
 	
 	global $administer_stats; 
-	$administer_stats = administer_get_stats();
 	if ( ! isset( $administer_stats[$id]['c']) ) $administer_stats[$id]['c'] = 0;
 	$administer_stats[$id]['c']++;	
 }
