@@ -19,7 +19,15 @@
 		update_option('administer_user_level', $_POST['administer_user_level']);
 		
 		// Checkboxes...
-		$names = array( 'administer_make_widgets', 'administer_dashboard_show', 'administer_statistics', 'administer_google_analytics', 'administer_rotate_ads' );
+		$names = array( 
+			'administer_make_widgets', 
+			'administer_dashboard_show', 
+			'administer_statistics', 
+			'administer_google_analytics', 
+			'administer_rotate_ads', 
+			'administer_lazy_load',
+			'administer_resize_image'
+		);
 		foreach ( $names as $name ) {
 			$value = ( $_POST[$name] == 'on' ) ? 'true' : 'false';
 			update_option( $name, $value );		
@@ -37,7 +45,13 @@
 		update_option('administer_google_analytics', 'true');
 
 	if (!strlen(get_option('administer_rotate_ads')))
-		update_option('administer_google_analytics', 'true');
+		update_option('administer_rotate_ads', 'false');
+
+	if (!strlen(get_option('administer_resize_image')))
+		update_option('administer_resize_image', 'false');
+		
+	if (!strlen(get_option('administer_lazy_load')))
+		update_option('administer_lazy_load', 'false');
 		
 	if (!strlen(get_option('administer_dashboard_show'))) 
 		update_option('administer_dash board_show', 'true');
@@ -104,6 +118,18 @@
 			 	<th scope="row" valign="top"><?php _e('Ad Rotation', 'ad-minister'); ?></th>
 			 	<td>
 					<input type="checkbox" id="administer_rotate_ads" name="administer_rotate_ads" <?php if ( get_option( 'administer_rotate_ads' ) == 'true' ) echo ' checked="checked"'; ?> /> <label for="administer_rotate_ads"><?php _e('Allow multiple advertisements to rotate in a single position within a singe page load?', 'ad-minister'); ?></label>
+			 	</td>
+			 </tr>
+			 <tr>
+			 	<th scope="row" valign="top"><?php _e('Lazy Load Content', 'ad-minister'); ?></th>
+			 	<td>
+					<input type="checkbox" id="administer_lazy_load" name="administer_lazy_load" <?php if ( get_option( 'administer_lazy_load' ) == 'true' ) echo ' checked="checked"'; ?> /> <label for="administer_lazy_load"><?php _e('Only load ad content when banner is in view?', 'ad-minister'); ?></label>
+			 	</td>
+			 </tr>
+			 <tr>
+			 	<th scope="row" valign="top"><?php _e('Resize Images', 'ad-minister'); ?></th>
+			 	<td>
+					<input type="checkbox" id="administer_resize_image" name="administer_resize_image" <?php if ( get_option( 'administer_resize_image' ) == 'true' ) echo ' checked="checked"'; ?> /> <label for="administer_resize_image"><?php _e('Resize image files on the server-side before serving?', 'ad-minister'); ?></label>
 			 	</td>
 			 </tr>
 			 <tr>

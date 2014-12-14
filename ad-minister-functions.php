@@ -586,7 +586,7 @@ function administer_resize_image( $args ) {
 		return '';
 	
 	// Use timthumb script
-	//$src = '/thumbs/timthumb.php?' . ( $quality ? 'q=' . $quality : '' ) . ( $width ? '&amp;w=' . $width : '' ) . ( $height ? '&amp;h=' . $height : '' ) . '&amp;zc=0&amp;src=' . $src;	
+	$src = '/thumbs/timthumb.php?' . ( $quality ? 'q=' . $quality : '' ) . ( $width ? '&amp;w=' . $width : '' ) . ( $height ? '&amp;h=' . $height : '' ) . '&amp;zc=0&amp;src=' . $src;	
 	
 	/*
 	// Use Matthew Ruddy's function declared in script/resize/resize.php
@@ -661,32 +661,39 @@ function administer_build_ad_img_code( $args ) {
 	$args = wp_parse_args( $args, $defaults );
 	extract( $args );
 	
-	if ( ! $src ) 
-		return '';
+	if ( ! $src ) return '';
 	
 	$onload = esc_js( $onload );
-	$onclick = esc_js( $onclick );	
+	$onclick = esc_js( $onclick );		
+	
+	$code = "";
+	if ( ( ! is_admin() ) && ( get_option( 'administer_lazy_load' ) == 'true' ) ) {
+		$code .= "<img class='administer-lazy-load' data-src='{$src}' ";
+		$code .= $hint ? "title='{$hint}' " : "";
+		$code .= $width ? "width='{$width}' " : ""; 
+		$code .= $height ? "height='{$height}' " : ""; 
+		$code .= $onload ? "onload=\"{$onload}\" " : "";		
+		$code .= "/>";				
 		
-	$code = "<img src='{$src}' ";
-	
-	if ( $hint ) {
-		$code .= "title='{$hint}' "; 
+		// In case javascript is unsupported
+		$code .= "<noscript>";
+		$code .= "<img src='{$src}' ";
+		$code .= $hint ? "title='{$hint}' " : "";
+		$code .= $width ? "width='{$width}' " : ""; 
+		$code .= $height ? "height='{$height}' " : ""; 
+		$code .= $onload ? "onload=\"{$onload}\" " : "";
+		$code .= "/>";
+		$code .= "</noscript>";
 	}
-	
-	if ( $width ) {
-		$code .= "width='{$width}' "; 
-	}
-	
-	if ( $height ) {
-		$code .= "height='{$height}' "; 
+	else {
+		$code .= "<img src='{$src}' ";
+		$code .= $hint ? "title='{$hint}' " : "";
+		$code .= $width ? "width='{$width}' " : ""; 
+		$code .= $height ? "height='{$height}' " : ""; 
+		$code .= $onload ? "onload=\"{$onload}\" " : "";
+		$code .= "/>";
 	}
 		
-	if ( $onload ) {
-		$code .= "onload=\"{$onload}\" ";
-	}
-	
-	$code .= "/>";	
-
 	$code = administer_build_ad_link_code( array(
 		'id' => $id,
 		'href' => $link_url,
@@ -851,8 +858,10 @@ function administer_build_code( $args ) {
 		case 'png':
 		case 'tif':
 		case 'tiff':
-			if ( 'gif' != $ext ) {
-				$args['src'] = administer_resize_image( array( 'src' => $args['src'], 'width' => $args['width'], 'height' => $args['height'] ) );	
+			if ( get_option( 'administer_resize_image' ) == 'true' ) {
+				if ( 'gif' != $ext ) {
+					$args['src'] = administer_resize_image( array( 'src' => $args['src'], 'width' => $args['width'], 'height' => $args['height'] ) );	
+				}
 			}
 			$code = administer_build_ad_img_code( $args );
 			break;

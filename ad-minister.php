@@ -179,6 +179,9 @@ function administer_wp_enqueue_scripts() {
 	//wp_register_script( 'tcycle', 'http://malsup.github.com/jquery.tcycle.js', array( 'jquery' ) );
 	wp_register_script( 'tcycle', plugins_url( 'js/jquery.tcycle.js', __FILE__ ), array( 'jquery' ) );
 	wp_enqueue_script( 'tcycle' );
+	
+	wp_register_script( 'administer-lazy-load', plugins_url( 'js/ad-minister-lazy-load.js', __FILE__ ), array( 'jquery' ) );
+	wp_enqueue_script( 'administer-lazy-load' );	
 }
 add_action('wp_enqueue_scripts', 'administer_wp_enqueue_scripts');
 
