@@ -813,7 +813,9 @@ function administer_build_code( $args ) {
 	
 	$ad_link_url = esc_url_raw( trim( $ad_link_url ) );
 	if ( $ad_link_url ) {
-		$ad_link_url = '%tracker%' . urlencode( str_replace( '%tracker%', '', $ad_link_url ) );
+		if ( get_option( 'administer_statistics' ) == 'true' ) {
+			$ad_link_url = '%tracker%' . urlencode( str_replace( '%tracker%', '', $ad_link_url ) );
+		}
 	}
 	
 	$ad_audio_url = esc_url( trim( $ad_audio_url ) );
