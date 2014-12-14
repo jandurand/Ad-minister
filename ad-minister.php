@@ -192,6 +192,13 @@ function administer_wp_enqueue_styles() {
 }
 add_action('wp_enqueue_scripts', 'administer_wp_enqueue_styles');
 
+function administer_wp_head() {
+    // Hide administer-lazy-load content if javascript is unsupported
+	echo '<noscript><script type="text/css"> .administer-lazy-load { display: none; } </script></noscript>';
+}
+add_action( 'wp_head', 'administer_wp_head' );
+
+
 function administer_session() {
 	if ( function_exists( 'session_status' ) ) {
 		if ( session_status() == PHP_SESSION_NONE ) {
