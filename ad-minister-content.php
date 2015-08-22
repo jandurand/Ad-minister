@@ -161,84 +161,90 @@
 				<input class="button" type="submit" id="apply_button" name="apply_button" value="Apply" />
 			</div>
 			<table class="widefat">
-			<thead>
-				<tr>
-					<?php if ( in_array('selected', $columns) ) { ?>
-						<th><input class='staddt_selected' type="checkbox" id="select_all" name="select_all" /></th>
-					<?php } ?>
-					
-					<?php
-					$cols = array(
-						array( 'name' => 'id', 'caption' => 'ID' ),
-						array( 'name' => 'title', 'caption' => 'Title' ),
-						array( 'name' => 'position', 'caption' => 'Position' ),
-						array( 'name' => 'visible', 'caption' => 'Visible' ),
-						array( 'name' => 'time', 'caption' => 'Time Left' ),
-						array( 'name' => 'impressions', 'caption' => 'Impressions' ),
-						array( 'name' => 'clicks', 'caption' => 'Clicks' )
-					);					
-					foreach ( $cols as $col ) {
-						if ( in_array( $col['name'], $columns ) ) {
-					?>
-							<th><?php administer_sort_link( $link, $col['name'], $sort, $order, __( $col['caption'], 'ad-minister' ) ); ?></th>
-					<?php
-						}
-					} 
-					?>
-				</tr>
-			</thead>
-
-			<?php 
-			$rownbr = 0;
-			foreach ( $arr_keys as $i ) {
-				$class = ( $rownbr++ % 2 ) ? $table['row-class'][$i] : $table['row-class'][$i] . ' alternate'; 
-			?>
-				<tr class="<?php echo $class; ?>">
-					<?php if (in_array('selected', ($columns))) : ?>
-						<td class='staddt_selected'><input style="margin-left: 8px;" type="checkbox" name="selected_ads[]" value="<?php echo $table['id'][$i]; ?>" /></td>
-					<?php endif; ?>
-
-					<?php if (in_array('id', ($columns))) : ?>
-						<td class='staddt_id'><strong><?php echo $table['id'][$i]; ?></strong></td>
-					<?php endif; ?>
-					<?php if (in_array('title', ($columns))) : ?>
-						<td class='stat_title'>
-							<?php if (is_admin()) : ?><a href="<?php echo $table['title_link'][$i]; ?>"><?php endif; ?><?php echo $table['title'][$i]; ?><?php if (is_admin()) : ?></a><?php endif; ?>	
-						</td>
-					<?php endif; ?>
-					<?php if (in_array('position', ($columns))) : ?>
-						<td class='stat_position'>
-							<?php 
-							if ( empty( $table['position'][$i] ) ) {
-								echo '-';
+				<thead>
+					<tr>
+						<?php if ( in_array('selected', $columns) ) { ?>
+							<th><input class='staddt_selected' type="checkbox" id="select_all" name="select_all" /></th>
+						<?php } ?>
+						
+						<?php
+						$cols = array(
+							array( 'name' => 'id', 'caption' => 'ID' ),
+							array( 'name' => 'title', 'caption' => 'Title' ),
+							array( 'name' => 'position', 'caption' => 'Position' ),
+							array( 'name' => 'visible', 'caption' => 'Visible' ),
+							array( 'name' => 'time', 'caption' => 'Time Left' ),
+							array( 'name' => 'impressions', 'caption' => 'Impressions' ),
+							array( 'name' => 'clicks', 'caption' => 'Clicks' )
+						);					
+						foreach ( $cols as $col ) {
+							if ( in_array( $col['name'], $columns ) ) {
+						?>
+								<th><?php administer_sort_link( $link, $col['name'], $sort, $order, __( $col['caption'], 'ad-minister' ) ); ?></th>
+						<?php
 							}
-							else if ( is_array( ($table['position'][$i]) ) ) {
-								foreach ( $table['position'][$i] as $position ) {
-									echo "<div>$position</div>";
+						} 
+						?>
+					</tr>
+				</thead>
+
+				<?php 
+				$rownbr = 0;
+				foreach ( $arr_keys as $i ) {
+					$class = ( $rownbr++ % 2 ) ? $table['row-class'][$i] : $table['row-class'][$i] . ' alternate'; 
+				?>
+					<tr class="<?php echo $class; ?>">
+						<?php if (in_array('selected', ($columns))) : ?>
+							<td class='staddt_selected'><input style="margin-left: 8px;" type="checkbox" name="selected_ads[]" value="<?php echo $table['id'][$i]; ?>" /></td>
+						<?php endif; ?>
+
+						<?php if (in_array('id', ($columns))) : ?>
+							<td class='staddt_id'><strong><?php echo $table['id'][$i]; ?></strong></td>
+						<?php endif; ?>
+						
+						<?php if (in_array('title', ($columns))) : ?>
+							<td class='stat_title'>
+								<?php if (is_admin()) : ?><a href="<?php echo $table['title_link'][$i]; ?>"><?php endif; ?><?php echo $table['title'][$i]; ?><?php if (is_admin()) : ?></a><?php endif; ?>	
+							</td>
+						<?php endif; ?>
+						
+						<?php if (in_array('position', ($columns))) : ?>
+							<td class='stat_position'>
+								<?php 
+								if ( empty( $table['position'][$i] ) ) {
+									echo '-';
 								}
-							}
-							else 
-								echo $table['position'][$i]; 
-							?> 
-							<?php //echo $table['weight'][$i]; ?>
-						</td>
-					<?php endif; ?>
-					<?php if (in_array('visible', ($columns))) : ?>
-						<td class='stat_visible'><?php echo $table['visible'][$i]; ?></td>
-					<?php endif; ?>
-					<?php if (in_array('time', ($columns))) : ?>
-						<td class='stat_time'><?php echo $table['time'][$i]; ?></td>
-					<?php endif; ?>
-					<?php if (in_array('impressions', ($columns))) : ?>
-						<td class='stat_impressions'><?php echo $table['impressions'][$i]; ?></td>
-					<?php endif; ?>
-					<?php if (in_array('clicks', ($columns))) : ?>
-						<td class='stat_clicks'><?php echo $table['clicks'][$i]; ?></td>
-					<?php endif; ?>
-				</tr>
-			<?php
-			} 
-			?>
+								else if ( is_array( ($table['position'][$i]) ) ) {
+									foreach ( $table['position'][$i] as $position ) {
+										echo "<div>$position</div>";
+									}
+								}
+								else 
+									echo $table['position'][$i]; 
+								?> 
+								<?php //echo $table['weight'][$i]; ?>
+							</td>
+						<?php endif; ?>
+						
+						<?php if (in_array('visible', ($columns))) : ?>
+							<td class='stat_visible'><?php echo $table['visible'][$i]; ?></td>
+						<?php endif; ?>
+						
+						<?php if (in_array('time', ($columns))) : ?>
+							<td class='stat_time'><?php echo $table['time'][$i]; ?></td>
+						<?php endif; ?>
+						
+						<?php if (in_array('impressions', ($columns))) : ?>
+							<td class='stat_impressions'><?php echo $table['impressions'][$i]; ?></td>
+						<?php endif; ?>
+						
+						<?php if (in_array('clicks', ($columns))) : ?>
+							<td class='stat_clicks'><?php echo $table['clicks'][$i]; ?></td>
+						<?php endif; ?>
+					</tr>
+				<?php
+				} 
+				?>
 			</table>
 		</form>
 	</div>

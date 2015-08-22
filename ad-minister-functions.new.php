@@ -5,8 +5,6 @@
 **    Main Ad-minster Admin
 */
 function administer_main( $page ) {
-	global $submenu;
-	
 	if ( empty( $page ) ) 
 		$page = 'ad-minister-content';
 	else if ( strpos( $page, 'ad-minister' ) === false ) 
@@ -16,29 +14,7 @@ function administer_main( $page ) {
 	$stats = administer_get_stats();
 	$content = administer_get_content();
 	$positions = administer_get_positions();
-
-	$menu_items = isset( $submenu['ad-minister'] ) ? $submenu['ad-minister'] : array();
-	if ( !empty( $menu_items ) ) {
-		echo "<ul class='tabs'>";
-		foreach ( $menu_items as $item ) {
-			// 0 = name, 1 = capability, 2 = slug
-			$menu_slug = $item[2];
-			if ( in_array( $menu_slug, array( 'ad-minister-banner' ) ) ) continue;
-			
-			$menu_name = $item[0];
-			$menu_page_url = menu_page_url( $menu_slug, false );
-			
-			if ( $menu_slug == 'ad-minister' ) {
-				$menu_slug = 'ad-minister-content';
-				$menu_name = 'Banners';
-			}
-			
-			$class = ( $menu_slug == $page ) ? 'tabs-current' : '';
-			echo "<li><a class='{$class}' href='{$menu_page_url}'>{$menu_name}</a></li>";
-		}
-		echo "</ul>";
-	}
-
+	
 	// Load the relevant page
 	include("{$page}.php");
 }
@@ -57,6 +33,31 @@ function administer_page_settings() {
 }
 function administer_page_help() {
 	administer_main( 'help' );
+}
+
+function administer_position_template ($position = array(), $nbr = 0) { echo administer_get_position_template($position, $nbr); }
+function administer_get_position_template ($position = array(), $nbr = 0) { 
+	$key  = $position['position']; // p2m_meta('position_key_' . $nbr);
+	$desc = $position['description']; //p2m_meta('position_desc_' . $nbr);
+	$rotating = ( ( $position['rotate'] == 'true' ) && ( $position['rotate_time'] ) ) ? 'Yes (' . $position['rotate_time'] . 's)' : 'No'; 
+	
+	// Set up css formatting
+	$class =  ($nbr % 2) ? '' : 'alternate';
+	$html = '<tr class="%class%">';
+	$html .= '<td style="white-space: nowrap;">' . $key . '</td>';
+	$html .= '<td>' . $desc . '</td>';
+	//$html .= '<td>' . htmlentities($position['before']) . ' ' . htmlentities($position['after']) . '</td>';
+	$html .= '<td>' . $position['class'] . '</td>';
+	$html .= '<td>' . $rotating . '</td>';
+	$html .= '<td><a href="%url_edit%">' . __('Edit', 'ad-minister') . '</a> | <a href="%url_remove%">' . __('Remove', 'ad-minister') . '</a></td>';
+	$html .= '</tr>';
+
+	// Inject template values
+	$html = str_replace('%url_edit%', administer_get_page_url( 'positions' ) . '&key=' . urlencode($key) . '&action=edit', $html);
+	$html = str_replace('%url_remove%', administer_get_page_url( 'positions' ) . '&key=' . urlencode($key) . '&action=delete', $html);
+	$html = str_replace('%class%', $class, $html);
+
+	return $html;
 }
 
 /*
@@ -355,24 +356,31 @@ function administer_dashboard_widget () {
 
 // Displays Ad-minister dashboard widget options
 function administer_dashboard_widget_control() {    
-    $widget_id = 'ad-minister-dashboard-widget'; // This must be the same ID we set in wp_add_dashboard_widget
+    /*$widget_id = 'ad-minister-dashboard-widget'; // This must be the same ID we set in wp_add_dashboard_widget
     $form_id = 'ad-minister-dashboard-widget-control'; // Set this to whatever you want
-    
+ 
     // Checks whether there are already dashboard widget options in the database
-    if ( !$widget_options = get_option( 'dashboard_widget_options' ) )
-      $widget_options = array(); // If not, we create a new array
-    
-    // Check whether we have information for this form
+    $widget_options = get_option( 'dashboard_widget_options', array() );
+
+    // Check whether we have widget information for ad-minister dashboard widget
     if ( !isset($widget_options[$widget_id]) )
-      $widget_options[$widget_id] = array(); // If not, we create a new array
-    
+		$widget_options[$widget_id] = array(); // If not, we create a new array
+	
     // Check whether our form was just submitted
-    if ( 'POST' == $_SERVER['REQUEST_METHOD'] && isset( $_POST[$form_id] ) ) {
-      $widget_options[$widget_id]['event_period'] = absint( $_POST[$form_id]['event_period'] );
-      update_option( 'dashboard_widget_options', $widget_options ); // Update our dashboard widget options so we can access later
+    if ( ( 'POST' == $_SERVER['REQUEST_METHOD'] ) && isset( $_POST[$form_id] ) ) {
+		$event_period = absint( $_POST[$form_id]['event_period'] );
+      
+		//update_option( 'administer_dashboard_period', $event_period );
+		$widget_options[$widget_id]['event_period'] = $event_period;
+		update_option( 'dashboard_widget_options', $widget_options ); // Update our dashboard widget options so we can access later
     }
     
-    $event_period = administer_get_dashboard_widget_option( 'event_period', 30 );
+    //$event_period = isset( $widget_options[$widget_id]['event_period'] ) ? (int) $widget_options[$widget_id]['event_period'] : '';
+    
+	$event_period = administer_get_dashboard_widget_option( 'event_period', 30 );
+	//$event_period = get_option( 'administer_dashboard_period', '' );
+	*/
+	
 	
     // Create our form fields
     echo '<p><label for="ad-minister-dashboard-widget-event-period">' . __( 'Number of days to check for upcoming events: ', 'ad-minister' ) . '</label>';
@@ -388,7 +396,7 @@ function administer_register_widgets(){
 **/
 function administer_translate(){
     // Load a language
-	load_plugin_textdomain( 'ad-minister', plugin_dir_path ( __FILE__ ) );
+	load_plugin_textdomain( 'ad-minister', plugin_dir_path( __FILE__ ) );
 }
 
 /**
@@ -580,7 +588,7 @@ function administer_get_ga_tracking_code( $category, $action, $opt_label ) {
 	//code = "_gaq.push([\'_trackEvent\', \'{$category}\', \'{$action}\', \'{$opt_label}\']);";
 	
 	// Build Google Universal Analytics Tracking Code
-	$code = "if ( typeof(ga) == \'function\' ) { ga(\'send\', \'event\', \'{$category}\', \'{$action}\', \'{$opt_label}\'); }";
+	$code = "if ( typeof(ga) == 'function' ) { ga(\'send\', \'event\', \'{$category}\', \'{$action}\', \'{$opt_label}\'); }";
 	
 	return $code;
 }
@@ -602,7 +610,7 @@ function administer_resize_image( $args ) {
 	
 	// Use timthumb script
 	$src = '/thumbs/timthumb.php?' . ( $quality ? 'q=' . $quality : '' ) . ( $width ? '&amp;w=' . $width : '' ) . ( $height ? '&amp;h=' . $height : '' ) . '&amp;zc=0&amp;src=' . $src;	
-	
+s	
 	return $src;
 }
 
@@ -620,7 +628,6 @@ function administer_build_ad_link_code( $args ) {
 		'hint' => '',
 		'onload' => '',
 		'onclick' => '',
-		'class' => ''
 	);
 	$args = wp_parse_args( $args, $defaults );
 	extract( $args );
@@ -643,14 +650,14 @@ function administer_build_ad_link_code( $args ) {
 	$onclick = esc_js( $onclick );
 	
 	if ( $onload ) {
-		$onload = "onload=\"{$onload}\"";
+		$onload = "onload='{$onload}'";
 	}
 	
 	if ( $onclick ) {
-		$onclick = "onclick=\"{$onclick}\"";
+		$onclick = "onclick='{$onclick}'";
 	}
 	
-	$code = "<a {$link_url_id} class='{$class}' {$link_url_title} {$link_url_alt} href='{$href}' {$onclick} {$onload} target='_blank' rel='nofollow'>{$content}</a>";
+	$code = "<a {$link_url_id} {$link_url_title} {$link_url_alt} href='{$href}' {$onclick} {$onload} target='_blank' rel='nofollow'>{$content}</a>";
 	
 	return $code;
 }
@@ -741,10 +748,7 @@ function administer_build_ad_flash_swf_code( $args ) {
 	
 	if ( empty( $src ) )
 		return '';
-	
-	if ( $link_url ) 
-		$src .= '?clickTAG=' . $link_url;
-	
+			
 	$tag_id = 'swfobject' . $id;
 	$html = "<object id='{$tag_id}' classid='clsid:D27CDB6E-AE6D-11cf-96B8-444553540000' width='$width' height='$height'><param name='movie' value='$src' /><param name='wmode' value='transparent' /><param name='loop' value='true' /><!--[if !IE]>--><object type='application/x-shockwave-flash' data='$src' width='$width' height='$height'><param name='wmode' value='transparent' /><param name='loop' value='true' /><!--<![endif]--><p>Flash Content Unavailable</p><!--[if !IE]>--></object><!--<![endif]--></object>";
 	
@@ -752,13 +756,13 @@ function administer_build_ad_flash_swf_code( $args ) {
 	$express_install_path = plugins_url( 'script/swfobject/expressInstall.swf', __FILE__ );
 	$html .= "<script type='text/javascript' language='javascript'>swfobject.registerObject('swfobject$id', '9', '$express_install_path');</script>";
 	$html .= "<script type='text/javascript' language='javascript'>jQuery('#{$tag_id}').ready(function(){ {$onload} });</script>";
-	
-	$html .= administer_build_ad_link_code( array(
+
+	$html = administer_build_ad_link_code( array(
 		'id' => $id,
 		'href' => $link_url,
-		'content' => '',
+		'content' => $html,
 		'hint' => $hint,
-		'class' => 'block-content-link',
+		'class' => 'flash-banner-link',
 		'onclick' => $onclick
 	) );
 	
@@ -795,12 +799,12 @@ function administer_build_ad_flash_flv_code( $args ) {
 	$flowplayer_path = plugins_url( 'script/flowplayer/flowplayer.swf', __FILE__ ); ;
 	$html = "<div id='{$tag_id}' style='width:{$width};height:{$height}'></div><script type='text/javascript' language='JavaScript'>flowplayer('flvplayer$id', '$flowplayer_path', { clip: { url: '$src', autoPlay: true, autoBuffering: true, linkUrl: '$link_url', linkWindow: '_blank' }, plugins: { controls: null }, buffering: false, onLoad: function() { $onload }, onBeforeClick: function() { $onclick }, onFinish: function() { this.stop(); this.play(); }, onBeforePause: function() { return false; } });</script>";
 
-	$html .= administer_build_ad_link_code( array(
+	$html = administer_build_ad_link_code( array(
 		'id' => $id,
 		'href' => $link_url,
-		'content' => '',
+		'content' => $html,
 		'hint' => $hint,
-		'class' => 'block-content-link',
+		'class' => 'flash-banner-link',
 		'onclick' => $onclick
 	) );
 	
@@ -857,12 +861,12 @@ function administer_build_ad_mp4_code( $args ) {
 		</object>
 	</video>";
 
-	$html .= administer_build_ad_link_code( array(
+	$html = administer_build_ad_link_code( array(
 		'id' => $id,
 		'href' => $link_url,
-		'content' => '',
+		'content' => $html,
 		'hint' => $hint,
-		'class' => 'block-content-link',
+		'class' => 'flash-banner-link',
 		'onclick' => $onclick
 	) );
 	
@@ -890,21 +894,10 @@ function administer_build_code( $args ) {
 	
 	if ( ! $ad_media_url ) return '';
 	
-	$width = '';
-	$height = '';
 	if ( ! $ad_size ) {
-		$img_path = parse_url( $ad_media_url, PHP_URL_PATH );
-		if ( ( $img_path !== NULL ) && ( $img_path !== FALSE ) ) {
-			$img_path = realpath( '.' . $img_path );
-			if ( $img_path !== FALSE ) {
-				$img_size = getimagesize( $img_path );
-				if ( $img_size !== FALSE ) {
-					list( $width, $height ) = $img_size; 
-					$width = ( $width == 0 ) ? '' : $width;
-					$height = ( $height == 0 ) ? '' : $height;
-				}
-			}
-		}
+		list( $width, $height ) = getimagesize( $ad_media_url );
+		$width = ( $width == 0 ) ? '' : $width;
+		$height = ( $height == 0 ) ? '' : $height;
 	}
 	else {
 		list( $width, $height ) = explode( 'x', $ad_size );
@@ -926,7 +919,7 @@ function administer_build_code( $args ) {
 	$title = esc_js( $title );
 	if ( ( get_option('administer_google_analytics') == 'true' ) && ( $title ) ) {
 		//$onload .= esc_js( administer_get_ga_tracking_code( 'Advertisement', 'Impression', $title ) ); // Commented out because of exceeding collection limits on Google Analytics account
-		$onclick .= esc_js( administer_get_ga_tracking_code( 'Advertisement', 'Click', $title, 1, true ) );
+		$onclick .= esc_js( administer_get_ga_tracking_code( 'Advertisement', 'Click', $title ) );
 	}
 
 	$args = array (
@@ -1090,7 +1083,7 @@ if ( !function_exists( 'administer_get_display_code' ) ) {
 				} 
 			
 				// Add default ad wrapping
-				$class = isset( $position['class'] ) ? $position['class'] : '';
+				$class = $position['class'];
 				$class .= ( $key === 0 ) ? ' first-ad' : '';
 				$default_wrapper_before = "<div id='ad-{$ad['id']}' class='administer-ad {$class}'>";
 				$default_wrapper_after = "</div>";
@@ -1208,9 +1201,7 @@ function administer_display_position( $position ) {
 	}
 	$ad = $ads[$ad_key];
 	
-	$rotate = isset( $positions[$position]['rotate'] ) ? $positions[$position]['rotate'] : '';
-	$rotate_time = isset( $positions[$position]['rotate_time'] ) ? $positions[$position]['rotate_time'] : '';
-	if ( ( get_option( 'administer_rotate_ads' ) == 'true' ) && ( $rotate == 'true' ) && ( $rotate_time ) )  {
+	if ( ( get_option( 'administer_rotate_ads' ) == 'true' ) && ( $positions[$position]['rotate'] == 'true' ) && ( $positions[$position]['rotate_time'] ) )  {
 		unset( $ads[$ad_key] );
 		array_unshift( $ads, $ad );	
 	}
@@ -1319,7 +1310,7 @@ function administer_do_redirect() {
 			// Save click
 			if ( get_option( 'administer_statistics') == 'true' ) { 
 				administer_register_click( $id );
-				administer_save_stats();
+				administer_update_stats( administer_get_stats() );
 			}
 
 			// Redirect
@@ -1329,6 +1320,75 @@ function administer_do_redirect() {
 			exit(1);
 		}
 	} 
+}
+
+/*
+**	administer_set_stats ( )
+**
+**	Sets the 'administer_stats' global variable and custom field.
+*/
+function administer_set_stats( $stats ) {
+	global $administer_stats;	
+	$administer_stats = $stats;
+	update_post_meta( administer_get_post_id(), 'administer_stats', $administer_stats );
+}
+
+/*
+**  administer_update_stats ( )
+**
+**  Save the clicks and impressions to db.
+*/
+function administer_update_stats( $stats = NULL, $filename = __FILE__, $function = __FUNCTION__, $line = __LINE__ ) {
+	if ( is_admin() ) return;
+	
+	if ( empty( $stats ) ) {
+		administer_log_stats_reset( $filename, $function, $line );
+		return;
+	}
+
+	administer_set_stats( $stats );
+}
+
+/*
+**  administer_f ( )
+**
+**  Formatting wrapper function
+*/
+function administer_f($text) {
+	//return wptexturize(stripslashes($text));
+	return stripslashes($text);
+}
+
+/*
+**  administer_sort_link ( )
+**
+**  Generate the link for the statistics table headers
+*/
+function administer_sort_link($link, $field, $sort, $order, $caption = '' ) {
+	//$link = get_option('siteurl') . '/wp-admin/edit.php?page=' . dirname(plugin_basename (__FILE__)) . '';
+	//$link .= '&tab=statistics';
+	if ( empty( $caption ) ) $caption = $field;
+	
+	if ($field == $sort) {
+		$symbol = ($order == 'up') ? ' &uarr;' : ' &darr;';
+		$linkorder = ($order == 'up') ? 'down' : 'up';
+		$alt = ($order == 'up') ? __('Sort descending', 'ad-minister') : __('Sort ascending', 'ad-minister');
+	}
+	else {
+		$symbol = '';
+		$linkorder = 'up';
+		$alt = __( "Sort by", 'ad-minister' ) . " " . __( $caption, 'ad-minister' );
+	}
+	echo "<a class='sort' title='{$alt}' href='{$link}&sort={$field}&order={$linkorder}'>{$caption}{$symbol}</a>";
+}
+
+/*
+**  administer_tracker_url ( )
+**
+**  Generate the tracker link
+*/
+function administer_tracker_url ($id) {
+	return get_option('siteurl') . '/?administer_redirect_' . $id . '=';
 }
 
 /*
@@ -1378,79 +1438,6 @@ function administer_get_stats( $id = NULL ) {
 		return $administer_stats[$id];
 	else
 		return $administer_stats;
-}
-
-/*
-**	administer_set_stats ( )
-**
-**	Sets the 'administer_stats' global variable and custom field.
-*/
-function administer_set_stats( $stats ) {
-	global $administer_stats;	
-	$administer_stats = $stats;
-	update_post_meta( administer_get_post_id(), 'administer_stats', $administer_stats );
-}
-
-/*
-**  administer_update_stats ( )
-**
-**  Save the clicks and impressions to db.
-*/
-function administer_update_stats( $stats = NULL, $filename = __FILE__, $function = __FUNCTION__, $line = __LINE__ ) {
-	if ( is_admin() ) return;
-	
-	if ( empty( $stats ) ) {
-		administer_log_stats_reset( $filename, $function, $line );
-		return;
-	}
-
-	administer_set_stats( $stats );
-}
-
-function administer_save_stats () {
-	administer_update_stats( administer_get_stats() );	
-}
-
-/*
-**  administer_f ( )
-**
-**  Formatting wrapper function
-*/
-function administer_f($text) {
-	//return wptexturize(stripslashes($text));
-	return stripslashes($text);
-}
-
-/*
-**  administer_sort_link ( )
-**
-**  Generate the link for the statistics table headers
-*/
-function administer_sort_link($link, $field, $sort, $order, $caption = '' ) {
-	//$link = get_option('siteurl') . '/wp-admin/edit.php?page=' . dirname(plugin_basename (__FILE__)) . '';
-	//$link .= '&tab=statistics';
-	if ( empty( $caption ) ) $caption = $field;
-	
-	if ($field == $sort) {
-		$symbol = ($order == 'up') ? ' &uarr;' : ' &darr;';
-		$linkorder = ($order == 'up') ? 'down' : 'up';
-		$alt = ($order == 'up') ? __('Sort descending', 'ad-minister') : __('Sort ascending', 'ad-minister');
-	}
-	else {
-		$symbol = '';
-		$linkorder = 'up';
-		$alt = __( "Sort by {$caption}", 'ad-minister');
-	}
-	echo "<a class='sort' title='{$alt}' href='{$link}&sort={$field}&order={$linkorder}'>{$caption}{$symbol}</a>";
-}
-
-/*
-**  administer_tracker_url ( )
-**
-**  Generate the tracker link
-*/
-function administer_tracker_url ($id) {
-	return get_option('siteurl') . '/?administer_redirect_' . $id . '=';
 }
 
 function administer_default_editor_to_html ($type) {

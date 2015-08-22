@@ -63,8 +63,35 @@
         }
     };
 
+	var lazyLoadImage = function($img) {					
+		if ( $img.hasClass('administer-lazy-load') && $img.visible(true) ) {
+			var src = $img.attr('data-src');
+			$img.removeClass('administer-lazy-load').css('visibility', 'visible').attr('src', src);
+			$img.children('noscript').css('display', 'none');
+		}		
+	}
+	
+    $.fn.administerLazyLoad = function() {
+        if (this.length < 1)
+			return;
+		
+		return this.each(function() { 
+			var $img = $(this); 
+			
+			if ($img.prop('tagName').toLowerCase() == 'img') {
+				lazyLoadImage($img);
+			}
+			else {
+				$img.find('img.administer-lazy-load').each(function() {	
+					lazyLoadImage($(this));
+				});
+			}				
+		});
+	}
+	
 	var loadVisibleImages = function() {
-		$('img.administer-lazy-load').each( function () { 
+		$('img.administer-lazy-load').administerLazyLoad();
+		/*$('img.administer-lazy-load').each( function () { 
 			var $img = $(this), 
 				src = $img.attr('data-src');
 			
@@ -73,7 +100,7 @@
 				$img.removeClass('administer-lazy-load').css('visibility', 'visible').attr('src', src);
 				$img.children('noscript').css('display', 'none');
 			}
-		});		
+		});*/		
 	}
 	
 	$(document).ready(function() {
@@ -83,3 +110,7 @@
 	
 	$w.load(loadVisibleImages);
 })(jQuery);
+
+function administerLazyLoad() {
+	jQuery('img.administer-lazy-load').administerLazyLoad();
+}

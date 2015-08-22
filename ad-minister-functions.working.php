@@ -1,12 +1,14 @@
 <?php
+
+// Include Matthew Ruddy's image resize function
+//require_once( 'script/resize/resize.php' );
+
 /*
 **    administer_main ( )
 **
 **    Main Ad-minster Admin
 */
 function administer_main( $page ) {
-	global $submenu;
-	
 	if ( empty( $page ) ) 
 		$page = 'ad-minister-content';
 	else if ( strpos( $page, 'ad-minister' ) === false ) 
@@ -16,29 +18,7 @@ function administer_main( $page ) {
 	$stats = administer_get_stats();
 	$content = administer_get_content();
 	$positions = administer_get_positions();
-
-	$menu_items = isset( $submenu['ad-minister'] ) ? $submenu['ad-minister'] : array();
-	if ( !empty( $menu_items ) ) {
-		echo "<ul class='tabs'>";
-		foreach ( $menu_items as $item ) {
-			// 0 = name, 1 = capability, 2 = slug
-			$menu_slug = $item[2];
-			if ( in_array( $menu_slug, array( 'ad-minister-banner' ) ) ) continue;
-			
-			$menu_name = $item[0];
-			$menu_page_url = menu_page_url( $menu_slug, false );
-			
-			if ( $menu_slug == 'ad-minister' ) {
-				$menu_slug = 'ad-minister-content';
-				$menu_name = 'Banners';
-			}
-			
-			$class = ( $menu_slug == $page ) ? 'tabs-current' : '';
-			echo "<li><a class='{$class}' href='{$menu_page_url}'>{$menu_name}</a></li>";
-		}
-		echo "</ul>";
-	}
-
+	
 	// Load the relevant page
 	include("{$page}.php");
 }
@@ -57,6 +37,32 @@ function administer_page_settings() {
 }
 function administer_page_help() {
 	administer_main( 'help' );
+}
+
+function administer_position_template ($position = array(), $nbr = 0) { echo administer_get_position_template($position, $nbr); }
+function administer_get_position_template ($position = array(), $nbr = 0) { 
+	$key  = $position['position']; // p2m_meta('position_key_' . $nbr);
+	$desc = $position['description']; //p2m_meta('position_desc_' . $nbr);
+	$rotating = ( ( $position['rotate'] == 'true' ) && ( $position['rotate_time'] ) ) ? 'Yes (' . $position['rotate_time'] . 's)' : 'No'; 
+	
+	// Set up css formatting
+	$class =  ($nbr % 2) ? '' : 'alternate';
+	$html = '<tr class="%class%">';
+	$html .= '<td style="white-space: nowrap;">' . $key . '</td>';
+	$html .= '<td>' . $desc . '</td>';
+	//$html .= '<td>' . htmlentities($position['before']) . ' ' . htmlentities($position['after']) . '</td>';
+	$html .= '<td>' . $position['class'] . '</td>';
+	$html .= '<td>' . $rotating . '</td>';
+	$html .= '<td><a href="%url_edit%">' . __('Edit', 'ad-minister') . '</a> | <a href="%url_remove%">' . __('Remove', 'ad-minister') . '</a></td>';
+	$html .= '</tr>';
+
+	// Inject template values
+	$url = get_option('siteurl') . '/' . PLUGINDIR . '/' . dirname(plugin_basename (__FILE__));
+	$html = str_replace('%url_edit%', administer_get_page_url( 'positions' ) . '&key=' . urlencode($key) . '&action=edit', $html);
+	$html = str_replace('%url_remove%', administer_get_page_url( 'positions' ) . '&key=' . urlencode($key) . '&action=delete', $html);
+	$html = str_replace('%class%', $class, $html);
+
+	return $html;
 }
 
 /*
@@ -246,30 +252,6 @@ function administer_get_time_left( $ad_schedule ) {
 	return $time_left;	
 }
 
-function administer_set_dashboard_widget_option( $option, $option_value ) {
-	$widget_id = 'ad-minister-dashboard-widget'; // This must be the same ID we set in wp_add_dashboard_widget
-    $widget_options = get_option( 'dashboard_widget_options', array() );
-	$widget_options[$widget_id][$option] = $option_value; 
-	update_option( 'dashboard_widget_options', $widget_options );
-} 
-
-function administer_get_dashboard_widget_option( $option, $default = false ) {
-	$widget_id = 'ad-minister-dashboard-widget'; // This must be the same ID we set in wp_add_dashboard_widget
-    
-    // Checks whether there are already dashboard widget options in the database
-    $widget_options = get_option( 'dashboard_widget_options', array() );
-    
-    // Check whether we have widget information for ad-minister dashboard widget
-    if ( !isset( $widget_options[$widget_id] ) )
-		$widget_options[$widget_id] = array(); // If not, we create a new array
-    
-	if ( !isset( $widget_options[$widget_id][$option] ) ) {
-		$widget_options[$widget_id][$option] = $default;
-	}
-	
-	return $widget_options[$widget_id][$option];
-}
-
 /*
 **  administer_dashboard_widget ()
 **
@@ -283,11 +265,13 @@ function administer_dashboard_widget () {
 	
 	$stats = administer_get_stats();
 	$url = administer_get_page_url();
+	$period = get_option('administer_dashboard_period') * 86400;
+
 	$events_by_time = array();
 	$li_time_left = '';
 	$li_impressions = '';
 	$li_clicks = '';
-	$expiring_period = (float) administer_get_dashboard_widget_option( 'event_period', 30 ) * 86400;
+	$expiring_period = (float) get_option( 'administer_dashboard_period', 30 ) * 86400;
 	$almost_expired_period = 7 * 86400;
 	
 	foreach ( $content as $con ) {
@@ -368,14 +352,18 @@ function administer_dashboard_widget_control() {
     
     // Check whether our form was just submitted
     if ( 'POST' == $_SERVER['REQUEST_METHOD'] && isset( $_POST[$form_id] ) ) {
-      $widget_options[$widget_id]['event_period'] = absint( $_POST[$form_id]['event_period'] );
-      update_option( 'dashboard_widget_options', $widget_options ); // Update our dashboard widget options so we can access later
+      $event_period = absint( $_POST[$form_id]['event_period'] );
+      
+	  	update_option( 'administer_dashboard_period', $event_period );
+      //$widget_options[$widget_id]['event_period'] = $event_period;
+      //update_option( 'dashboard_widget_options', $widget_options ); // Update our dashboard widget options so we can access later
     }
     
-    $event_period = administer_get_dashboard_widget_option( 'event_period', 30 );
+    //$event_period = isset( $widget_options[$widget_id]['event_period'] ) ? (int) $widget_options[$widget_id]['event_period'] : '';
+    $event_period = get_option( 'administer_dashboard_period', '' );
 	
     // Create our form fields
-    echo '<p><label for="ad-minister-dashboard-widget-event-period">' . __( 'Number of days to check for upcoming events: ', 'ad-minister' ) . '</label>';
+    echo '<p><label for="ad-minister-dashboard-widget-event-period">' . __('Number of days to check for upcoming events: ') . '</label>';
     echo '<input id="ad-minister-dashboard-widget-event-period" name="' . $form_id . '[event_period]" type="text" value="' . $event_period . '" size="3" /></p>';
 }
 
@@ -388,7 +376,7 @@ function administer_register_widgets(){
 **/
 function administer_translate(){
     // Load a language
-	load_plugin_textdomain( 'ad-minister', plugin_dir_path ( __FILE__ ) );
+	load_plugin_textdomain('p2m-ad-manager', PLUGINDIR . '/' . dirname(plugin_basename (__FILE__)) );
 }
 
 /**
@@ -466,7 +454,7 @@ class AdministerWidget extends WP_Widget {
 		?>
         
 		<p>
-			<label for="<?php echo $this->get_field_id( 'position' ); ?>"><?php _e( 'Select Position:', 'ad-minister' ); ?></label>
+			<label for="<?php echo $this->get_field_id( 'position' ); ?>"><?php _e( 'Select Position:' ); ?></label>
 			<select id="<?php echo $this->get_field_id( 'position' ); ?>" class="widefat" name="<?php echo $this->get_field_name( 'position' ); ?>">
 				<?php echo implode( '', $pos_options ); ?>
 			</select>
@@ -580,7 +568,7 @@ function administer_get_ga_tracking_code( $category, $action, $opt_label ) {
 	//code = "_gaq.push([\'_trackEvent\', \'{$category}\', \'{$action}\', \'{$opt_label}\']);";
 	
 	// Build Google Universal Analytics Tracking Code
-	$code = "if ( typeof(ga) == \'function\' ) { ga(\'send\', \'event\', \'{$category}\', \'{$action}\', \'{$opt_label}\'); }";
+	$code = "if ( typeof(ga) == 'function' ) { ga(\'send\', \'event\', \'{$category}\', \'{$action}\', \'{$opt_label}\'); }";
 	
 	return $code;
 }
@@ -603,6 +591,16 @@ function administer_resize_image( $args ) {
 	// Use timthumb script
 	$src = '/thumbs/timthumb.php?' . ( $quality ? 'q=' . $quality : '' ) . ( $width ? '&amp;w=' . $width : '' ) . ( $height ? '&amp;h=' . $height : '' ) . '&amp;zc=0&amp;src=' . $src;	
 	
+	
+	if ( function_exists ( 'matthewruddy_image_resize' ) ) {
+		// Use Matthew Ruddy's function declared in script/resize/resize.php
+		// Call the resizing function (returns an array)
+		$image = matthewruddy_image_resize( $src, $width, $height, $crop, $retina );
+		if ( ! is_wp_error( $image ) ) {
+			$src = $image['url'];
+		}
+	}
+	
 	return $src;
 }
 
@@ -620,7 +618,6 @@ function administer_build_ad_link_code( $args ) {
 		'hint' => '',
 		'onload' => '',
 		'onclick' => '',
-		'class' => ''
 	);
 	$args = wp_parse_args( $args, $defaults );
 	extract( $args );
@@ -643,14 +640,14 @@ function administer_build_ad_link_code( $args ) {
 	$onclick = esc_js( $onclick );
 	
 	if ( $onload ) {
-		$onload = "onload=\"{$onload}\"";
+		$onload = "onload='{$onload}'";
 	}
 	
 	if ( $onclick ) {
-		$onclick = "onclick=\"{$onclick}\"";
+		$onclick = "onclick='{$onclick}'";
 	}
 	
-	$code = "<a {$link_url_id} class='{$class}' {$link_url_title} {$link_url_alt} href='{$href}' {$onclick} {$onload} target='_blank' rel='nofollow'>{$content}</a>";
+	$code = "<a {$link_url_id} {$link_url_title} {$link_url_alt} href='{$href}' {$onclick} {$onload} target='_blank' rel='nofollow'>{$content}</a>";
 	
 	return $code;
 }
@@ -741,10 +738,7 @@ function administer_build_ad_flash_swf_code( $args ) {
 	
 	if ( empty( $src ) )
 		return '';
-	
-	if ( $link_url ) 
-		$src .= '?clickTAG=' . $link_url;
-	
+			
 	$tag_id = 'swfobject' . $id;
 	$html = "<object id='{$tag_id}' classid='clsid:D27CDB6E-AE6D-11cf-96B8-444553540000' width='$width' height='$height'><param name='movie' value='$src' /><param name='wmode' value='transparent' /><param name='loop' value='true' /><!--[if !IE]>--><object type='application/x-shockwave-flash' data='$src' width='$width' height='$height'><param name='wmode' value='transparent' /><param name='loop' value='true' /><!--<![endif]--><p>Flash Content Unavailable</p><!--[if !IE]>--></object><!--<![endif]--></object>";
 	
@@ -752,13 +746,13 @@ function administer_build_ad_flash_swf_code( $args ) {
 	$express_install_path = plugins_url( 'script/swfobject/expressInstall.swf', __FILE__ );
 	$html .= "<script type='text/javascript' language='javascript'>swfobject.registerObject('swfobject$id', '9', '$express_install_path');</script>";
 	$html .= "<script type='text/javascript' language='javascript'>jQuery('#{$tag_id}').ready(function(){ {$onload} });</script>";
-	
-	$html .= administer_build_ad_link_code( array(
+
+	$html = administer_build_ad_link_code( array(
 		'id' => $id,
 		'href' => $link_url,
-		'content' => '',
+		'content' => $html,
 		'hint' => $hint,
-		'class' => 'block-content-link',
+		'class' => 'flash-banner-link',
 		'onclick' => $onclick
 	) );
 	
@@ -795,12 +789,12 @@ function administer_build_ad_flash_flv_code( $args ) {
 	$flowplayer_path = plugins_url( 'script/flowplayer/flowplayer.swf', __FILE__ ); ;
 	$html = "<div id='{$tag_id}' style='width:{$width};height:{$height}'></div><script type='text/javascript' language='JavaScript'>flowplayer('flvplayer$id', '$flowplayer_path', { clip: { url: '$src', autoPlay: true, autoBuffering: true, linkUrl: '$link_url', linkWindow: '_blank' }, plugins: { controls: null }, buffering: false, onLoad: function() { $onload }, onBeforeClick: function() { $onclick }, onFinish: function() { this.stop(); this.play(); }, onBeforePause: function() { return false; } });</script>";
 
-	$html .= administer_build_ad_link_code( array(
+	$html = administer_build_ad_link_code( array(
 		'id' => $id,
 		'href' => $link_url,
-		'content' => '',
+		'content' => $html,
 		'hint' => $hint,
-		'class' => 'block-content-link',
+		'class' => 'flash-banner-link',
 		'onclick' => $onclick
 	) );
 	
@@ -857,12 +851,12 @@ function administer_build_ad_mp4_code( $args ) {
 		</object>
 	</video>";
 
-	$html .= administer_build_ad_link_code( array(
+	$html = administer_build_ad_link_code( array(
 		'id' => $id,
 		'href' => $link_url,
-		'content' => '',
+		'content' => $html,
 		'hint' => $hint,
-		'class' => 'block-content-link',
+		'class' => 'flash-banner-link',
 		'onclick' => $onclick
 	) );
 	
@@ -890,21 +884,10 @@ function administer_build_code( $args ) {
 	
 	if ( ! $ad_media_url ) return '';
 	
-	$width = '';
-	$height = '';
 	if ( ! $ad_size ) {
-		$img_path = parse_url( $ad_media_url, PHP_URL_PATH );
-		if ( ( $img_path !== NULL ) && ( $img_path !== FALSE ) ) {
-			$img_path = realpath( '.' . $img_path );
-			if ( $img_path !== FALSE ) {
-				$img_size = getimagesize( $img_path );
-				if ( $img_size !== FALSE ) {
-					list( $width, $height ) = $img_size; 
-					$width = ( $width == 0 ) ? '' : $width;
-					$height = ( $height == 0 ) ? '' : $height;
-				}
-			}
-		}
+		list( $width, $height ) = getimagesize( $ad_media_url );
+		$width = ( $width == 0 ) ? '' : $width;
+		$height = ( $height == 0 ) ? '' : $height;
 	}
 	else {
 		list( $width, $height ) = explode( 'x', $ad_size );
@@ -926,7 +909,7 @@ function administer_build_code( $args ) {
 	$title = esc_js( $title );
 	if ( ( get_option('administer_google_analytics') == 'true' ) && ( $title ) ) {
 		//$onload .= esc_js( administer_get_ga_tracking_code( 'Advertisement', 'Impression', $title ) ); // Commented out because of exceeding collection limits on Google Analytics account
-		$onclick .= esc_js( administer_get_ga_tracking_code( 'Advertisement', 'Click', $title, 1, true ) );
+		$onclick .= esc_js( administer_get_ga_tracking_code( 'Advertisement', 'Click', $title ) );
 	}
 
 	$args = array (
@@ -1090,7 +1073,7 @@ if ( !function_exists( 'administer_get_display_code' ) ) {
 				} 
 			
 				// Add default ad wrapping
-				$class = isset( $position['class'] ) ? $position['class'] : '';
+				$class = $position['class'];
 				$class .= ( $key === 0 ) ? ' first-ad' : '';
 				$default_wrapper_before = "<div id='ad-{$ad['id']}' class='administer-ad {$class}'>";
 				$default_wrapper_after = "</div>";
@@ -1208,9 +1191,7 @@ function administer_display_position( $position ) {
 	}
 	$ad = $ads[$ad_key];
 	
-	$rotate = isset( $positions[$position]['rotate'] ) ? $positions[$position]['rotate'] : '';
-	$rotate_time = isset( $positions[$position]['rotate_time'] ) ? $positions[$position]['rotate_time'] : '';
-	if ( ( get_option( 'administer_rotate_ads' ) == 'true' ) && ( $rotate == 'true' ) && ( $rotate_time ) )  {
+	if ( ( get_option( 'administer_rotate_ads' ) == 'true' ) && ( $positions[$position]['rotate'] == 'true' ) && ( $positions[$position]['rotate_time'] ) )  {
 		unset( $ads[$ad_key] );
 		array_unshift( $ads, $ad );	
 	}
@@ -1319,7 +1300,7 @@ function administer_do_redirect() {
 			// Save click
 			if ( get_option( 'administer_statistics') == 'true' ) { 
 				administer_register_click( $id );
-				administer_save_stats();
+				administer_update_stats( administer_get_stats() );
 			}
 
 			// Redirect
@@ -1329,55 +1310,6 @@ function administer_do_redirect() {
 			exit(1);
 		}
 	} 
-}
-
-/*
-**	administer_template_stats
-**
-*/
-function administer_template_stats ($options = array()) {
-	administer_stats($options);
-}
-
-/*
-** administer_log_stats_reset
-**
-** Logs whenever the tracking statistics (impressions and clicks) of the ad-minister plugin are reset.
-*/ 
-function administer_log_stats_reset( $filename, $function, $line ) {
-	$timestamp = date( "Y-m-d H:i:s", time() - ( 5 * 3600 ) );
-	$message = "[$timestamp] INFO: Attempted statistics reset in filename '{$filename}', by function '{$function}', on line {$line}" . PHP_EOL;	
-	
-	/*
-	// Write to log file
-	$log_file = dirname( __FILE__ ) . '/ad-minister.log';
-	//error_log( '[' . $timestamp . '] INFO: ' . $message . PHP_EOL, 3, $log_file );
-	$fh = fopen( $log_file, 'ab' );
-	fwrite( $fh, $message );
-	fclose( $fh );
-	*/
-	
-	// Email log message
-	$headers[] = 'From: Ad-minister <duravisioninc@gmail.com>';
-	$to = "jan.durand@gmail.com";
-	$subject = "Ad-minister Attempted Statistics Reset";
-	@wp_mail( $to, $subject, $message, $headers );
-}
-
-function administer_get_stats( $id = NULL ) {
-	global $administer_stats;
-	
-	if ( ! isset( $administer_stats ) ) {
-		$administer_stats = get_post_meta( administer_get_post_id(), 'administer_stats', true );
-		if ( ! is_array( $administer_stats ) ) {
-			$administer_stats = array();
-		}
-	}
-	
-	if ( isset( $id ) && ! empty( $administer_stats ) )
-		return $administer_stats[$id];
-	else
-		return $administer_stats;
 }
 
 /*
@@ -1405,10 +1337,6 @@ function administer_update_stats( $stats = NULL, $filename = __FILE__, $function
 	}
 
 	administer_set_stats( $stats );
-}
-
-function administer_save_stats () {
-	administer_update_stats( administer_get_stats() );	
 }
 
 /*
@@ -1451,6 +1379,53 @@ function administer_sort_link($link, $field, $sort, $order, $caption = '' ) {
 */
 function administer_tracker_url ($id) {
 	return get_option('siteurl') . '/?administer_redirect_' . $id . '=';
+}
+
+/*
+**	administer_template_stats
+**
+*/
+function administer_template_stats ($options = array()) {
+	administer_stats($options);
+}
+
+/*
+** administer_log_stats_reset
+**
+** Logs whenever the tracking statistics (impressions and clicks) of the ad-minister plugin are reset.
+*/ 
+function administer_log_stats_reset( $filename, $function, $line ) {
+	$timestamp = date( "Y-m-d H:i:s", time() - ( 5 * 3600 ) );
+	$message = "[$timestamp] INFO: Attempted statistics reset in filename '{$filename}', by function '{$function}', on line {$line}" . PHP_EOL;	
+	$log_file = dirname( __FILE__ ) . '/ad-minister.log';
+	
+	// Write to log file
+	//error_log( '[' . $timestamp . '] INFO: ' . $message . PHP_EOL, 3, $log_file );
+	$fh = fopen( $log_file, 'ab' );
+	fwrite( $fh, $message );
+	fclose( $fh );
+	
+	// Email log message
+	$headers[] = 'From: Ad-minister <duravisioninc@gmail.com>';
+	$to = "jan.durand@gmail.com";
+	$subject = "Ad-minister Attempted Statistics Reset";
+	@wp_mail( $to, $subject, $message, $headers );
+}
+
+function administer_get_stats( $id = NULL ) {
+	global $administer_stats;
+	
+	if ( ! isset( $administer_stats ) ) {
+		$administer_stats = get_post_meta( administer_get_post_id(), 'administer_stats', true );
+		if ( ! is_array( $administer_stats ) ) {
+			$administer_stats = array();
+		}
+	}
+	
+	if ( isset( $id ) && ! empty( $administer_stats ) )
+		return $administer_stats[$id];
+	else
+		return $administer_stats;
 }
 
 function administer_default_editor_to_html ($type) {
@@ -1618,3 +1593,387 @@ function administer_media_upload_setup() {
   } 
 } 
 add_action( 'admin_init', 'administer_media_upload_setup' );
+
+
+
+
+
+
+/**
+ *  Resizes an image and returns an array containing the resized URL, width, height and file type. Uses native Wordpress functionality.
+ *
+ *  Because Wordpress 3.5 has added the new 'WP_Image_Editor' class and depreciated some of the functions
+ *  we would normally rely on (such as wp_load_image), a separate function has been created for 3.5+.
+ *
+ *  Providing two separate functions means we can be backwards compatible and future proof. Hooray!
+ *  
+ *  The first function (3.5+) supports GD Library and Imagemagick. Worpress will pick whichever is most appropriate.
+ *  The second function (3.4.2 and lower) only support GD Library.
+ *  If none of the supported libraries are available the function will bail and return the original image.
+ *
+ *  Both functions produce the exact same results when successful.
+ *  Images are saved to the Wordpress uploads directory, just like images uploaded through the Media Library.
+ * 
+	*  Copyright 2013 Matthew Ruddy (http://easinglider.com)
+	*  
+	*  This program is free software; you can redistribute it and/or modify
+	*  it under the terms of the GNU General Public License, version 2, as 
+	*  published by the Free Software Foundation.
+	* 
+	*  This program is distributed in the hope that it will be useful,
+	*  but WITHOUT ANY WARRANTY; without even the implied warranty of
+	*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	*  GNU General Public License for more details.
+	*  
+	*  You should have received a copy of the GNU General Public License
+	*  along with this program; if not, write to the Free Software
+	*  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ *  @author Matthew Ruddy (http://easinglider.com)
+ *  @return array   An array containing the resized image URL, width, height and file type.
+ */
+if ( isset( $wp_version ) && version_compare( $wp_version, '3.5' ) >= 0 ) {
+	function matthewruddy_image_resize( $url, $width = NULL, $height = NULL, $crop = true, $retina = false ) {
+
+		global $wpdb;
+
+		if ( empty( $url ) )
+			return new WP_Error( 'no_image_url', __( 'No image URL has been entered.','wta' ), $url );
+
+		// Get default size from database
+		$width = ( $width )  ? $width : get_option( 'thumbnail_size_w' );
+		$height = ( $height ) ? $height : get_option( 'thumbnail_size_h' );
+		  
+		// Allow for different retina sizes
+		$retina = $retina ? ( $retina === true ? 2 : $retina ) : 1;
+
+		// Get the image file path
+		$file_path = parse_url( $url );
+		$file_path = $_SERVER['DOCUMENT_ROOT'] . $file_path['path'];
+		
+		// Check for Multisite
+		if ( is_multisite() ) {
+			global $blog_id;
+			$blog_details = get_blog_details( $blog_id );
+			$file_path = str_replace( $blog_details->path . 'files/', '/wp-content/blogs.dir/'. $blog_id .'/files/', $file_path );
+		}
+
+		// Destination width and height variables
+		$dest_width = $width * $retina;
+		$dest_height = $height * $retina;
+
+		// File name suffix (appended to original file name)
+		$suffix = "{$dest_width}x{$dest_height}";
+
+		// Some additional info about the image
+		$info = pathinfo( $file_path );
+		$dir = $info['dirname'];
+		$ext = $info['extension'];
+		$name = wp_basename( $file_path, ".$ext" );
+
+	        if ( 'bmp' == $ext ) {
+			return new WP_Error( 'bmp_mime_type', __( 'Image is BMP. Please use either JPG or PNG.','wta' ), $url );
+		}
+
+		// Suffix applied to filename
+		$suffix = "{$dest_width}x{$dest_height}";
+
+		// Get the destination file name
+		$dest_file_name = "{$dir}/{$name}-{$suffix}.{$ext}";
+
+		if ( !file_exists( $dest_file_name ) ) {
+			
+			/*
+			 *  Bail if this image isn't in the Media Library.
+			 *  We only want to resize Media Library images, so we can be sure they get deleted correctly when appropriate.
+			 */
+			$query = $wpdb->prepare( "SELECT * FROM $wpdb->posts WHERE guid='%s'", $url );
+			$get_attachment = $wpdb->get_results( $query );
+			if ( !$get_attachment )
+				return array( 'url' => $url, 'width' => $width, 'height' => $height );
+
+			// Load Wordpress Image Editor
+			$editor = wp_get_image_editor( $file_path );
+			if ( is_wp_error( $editor ) )
+				return array( 'url' => $url, 'width' => $width, 'height' => $height );
+
+			// Get the original image size
+			$size = $editor->get_size();
+			$orig_width = $size['width'];
+			$orig_height = $size['height'];
+
+			$src_x = $src_y = 0;
+			$src_w = $orig_width;
+			$src_h = $orig_height;
+
+			if ( $crop ) {
+
+				$cmp_x = $orig_width / $dest_width;
+				$cmp_y = $orig_height / $dest_height;
+
+				// Calculate x or y coordinate, and width or height of source
+				if ( $cmp_x > $cmp_y ) {
+					$src_w = round( $orig_width / $cmp_x * $cmp_y );
+					$src_x = round( ( $orig_width - ( $orig_width / $cmp_x * $cmp_y ) ) / 2 );
+				}
+				else if ( $cmp_y > $cmp_x ) {
+					$src_h = round( $orig_height / $cmp_y * $cmp_x );
+					$src_y = round( ( $orig_height - ( $orig_height / $cmp_y * $cmp_x ) ) / 2 );
+				}
+
+			}
+
+			// Time to crop the image!
+			$editor->crop( $src_x, $src_y, $src_w, $src_h, $dest_width, $dest_height );
+
+			// Now let's save the image
+			$saved = $editor->save( $dest_file_name );
+
+			// Get resized image information
+			$resized_url = str_replace( basename( $url ), basename( $saved['path'] ), $url );
+			$resized_width = $saved['width'];
+			$resized_height = $saved['height'];
+			$resized_type = $saved['mime-type'];
+
+			// Add the resized dimensions to original image metadata (so we can delete our resized images when the original image is delete from the Media Library)
+			$metadata = wp_get_attachment_metadata( $get_attachment[0]->ID );
+			if ( isset( $metadata['image_meta'] ) ) {
+				$metadata['image_meta']['resized_images'][] = $resized_width .'x'. $resized_height;
+				wp_update_attachment_metadata( $get_attachment[0]->ID, $metadata );
+			}
+
+			// Create the image array
+			$image_array = array(
+				'url' => $resized_url,
+				'width' => $resized_width,
+				'height' => $resized_height,
+				'type' => $resized_type
+			);
+
+		}
+		else {
+			$image_array = array(
+				'url' => str_replace( basename( $url ), basename( $dest_file_name ), $url ),
+				'width' => $dest_width,
+				'height' => $dest_height,
+				'type' => $ext
+			);
+		}
+
+		// Return image array
+		return $image_array;
+
+	}
+}
+else {
+	function matthewruddy_image_resize( $url, $width = NULL, $height = NULL, $crop = true, $retina = false ) {
+
+		global $wpdb;
+
+		if ( empty( $url ) )
+			return new WP_Error( 'no_image_url', __( 'No image URL has been entered.','wta' ), $url );
+
+		// Bail if GD Library doesn't exist
+		if ( !extension_loaded('gd') || !function_exists('gd_info') )
+			return array( 'url' => $url, 'width' => $width, 'height' => $height );
+
+		// Get default size from database
+		$width = ( $width ) ? $width : get_option( 'thumbnail_size_w' );
+		$height = ( $height ) ? $height : get_option( 'thumbnail_size_h' );
+
+		// Allow for different retina sizes
+		$retina = $retina ? ( $retina === true ? 2 : $retina ) : 1;
+
+		// Destination width and height variables
+		$dest_width = $width * $retina;
+		$dest_height = $height * $retina;
+
+		// Get image file path
+		$file_path = parse_url( $url );
+		$file_path = $_SERVER['DOCUMENT_ROOT'] . $file_path['path'];
+		
+		// Check for Multisite
+		if ( is_multisite() ) {
+			global $blog_id;
+			$blog_details = get_blog_details( $blog_id );
+			$file_path = str_replace( $blog_details->path . 'files/', '/wp-content/blogs.dir/'. $blog_id .'/files/', $file_path );
+		}
+
+		// Some additional info about the image
+		$info = pathinfo( $file_path );
+		$dir = $info['dirname'];
+		$ext = $info['extension'];
+		$name = wp_basename( $file_path, ".$ext" );
+
+	        if ( 'bmp' == $ext ) {
+			return new WP_Error( 'bmp_mime_type', __( 'Image is BMP. Please use either JPG or PNG.','wta' ), $url );
+		}
+
+		// Suffix applied to filename
+		$suffix = "{$dest_width}x{$dest_height}";
+
+		// Get the destination file name
+		$dest_file_name = "{$dir}/{$name}-{$suffix}.{$ext}";
+
+		// No need to resize & create a new image if it already exists!
+		if ( !file_exists( $dest_file_name ) ) {
+		
+			/*
+			 *  Bail if this image isn't in the Media Library either.
+			 *  We only want to resize Media Library images, so we can be sure they get deleted correctly when appropriate.
+			 */
+			$query = $wpdb->prepare( "SELECT * FROM $wpdb->posts WHERE guid='%s'", $url );
+			$get_attachment = $wpdb->get_results( $query );
+			if ( !$get_attachment )
+				return array( 'url' => $url, 'width' => $width, 'height' => $height );
+
+			$image = wp_load_image( $file_path );
+			if ( !is_resource( $image ) )
+				return new WP_Error( 'error_loading_image_as_resource', $image, $file_path );
+
+			// Get the current image dimensions and type
+			$size = @getimagesize( $file_path );
+			if ( !$size )
+				return new WP_Error( 'file_path_getimagesize_failed', __( 'Failed to get $file_path information using "@getimagesize".','wta'), $file_path );
+			list( $orig_width, $orig_height, $orig_type ) = $size;
+			
+			// Create new image
+			$new_image = wp_imagecreatetruecolor( $dest_width, $dest_height );
+
+			// Do some proportional cropping if enabled
+			if ( $crop ) {
+
+				$src_x = $src_y = 0;
+				$src_w = $orig_width;
+				$src_h = $orig_height;
+
+				$cmp_x = $orig_width / $dest_width;
+				$cmp_y = $orig_height / $dest_height;
+
+				// Calculate x or y coordinate, and width or height of source
+				if ( $cmp_x > $cmp_y ) {
+					$src_w = round( $orig_width / $cmp_x * $cmp_y );
+					$src_x = round( ( $orig_width - ( $orig_width / $cmp_x * $cmp_y ) ) / 2 );
+				}
+				else if ( $cmp_y > $cmp_x ) {
+					$src_h = round( $orig_height / $cmp_y * $cmp_x );
+					$src_y = round( ( $orig_height - ( $orig_height / $cmp_y * $cmp_x ) ) / 2 );
+				}
+
+				// Create the resampled image
+				imagecopyresampled( $new_image, $image, 0, 0, $src_x, $src_y, $dest_width, $dest_height, $src_w, $src_h );
+
+			}
+			else
+				imagecopyresampled( $new_image, $image, 0, 0, 0, 0, $dest_width, $dest_height, $orig_width, $orig_height );
+
+			// Convert from full colors to index colors, like original PNG.
+			if ( IMAGETYPE_PNG == $orig_type && function_exists('imageistruecolor') && !imageistruecolor( $image ) )
+				imagetruecolortopalette( $new_image, false, imagecolorstotal( $image ) );
+
+			// Remove the original image from memory (no longer needed)
+			imagedestroy( $image );
+
+			// Check the image is the correct file type
+			if ( IMAGETYPE_GIF == $orig_type ) {
+				if ( !imagegif( $new_image, $dest_file_name ) )
+					return new WP_Error( 'resize_path_invalid', __( 'Resize path invalid (GIF)','wta' ) );
+			}
+			elseif ( IMAGETYPE_PNG == $orig_type ) {
+				if ( !imagepng( $new_image, $dest_file_name ) )
+					return new WP_Error( 'resize_path_invalid', __( 'Resize path invalid (PNG).','wta' ) );
+			}
+			else {
+
+				// All other formats are converted to jpg
+				if ( 'jpg' != $ext && 'jpeg' != $ext )
+					$dest_file_name = "{$dir}/{$name}-{$suffix}.jpg";
+				if ( !imagejpeg( $new_image, $dest_file_name, apply_filters( 'resize_jpeg_quality', 90 ) ) )
+					return new WP_Error( 'resize_path_invalid', __( 'Resize path invalid (JPG).','wta' ) );
+
+			}
+
+			// Remove new image from memory (no longer needed as well)
+			imagedestroy( $new_image );
+
+			// Set correct file permissions
+			$stat = stat( dirname( $dest_file_name ));
+			$perms = $stat['mode'] & 0000666;
+			@chmod( $dest_file_name, $perms );
+
+			// Get some information about the resized image
+			$new_size = @getimagesize( $dest_file_name );
+			if ( !$new_size )
+				return new WP_Error( 'resize_path_getimagesize_failed', __( 'Failed to get $dest_file_name (resized image) info via @getimagesize','wta' ), $dest_file_name );
+			list( $resized_width, $resized_height, $resized_type ) = $new_size;
+
+			// Get the new image URL
+			$resized_url = str_replace( basename( $url ), basename( $dest_file_name ), $url );
+
+			// Add the resized dimensions to original image metadata (so we can delete our resized images when the original image is delete from the Media Library)
+			$metadata = wp_get_attachment_metadata( $get_attachment[0]->ID );
+			if ( isset( $metadata['image_meta'] ) ) {
+				$metadata['image_meta']['resized_images'][] = $resized_width .'x'. $resized_height;
+				wp_update_attachment_metadata( $get_attachment[0]->ID, $metadata );
+			}
+
+			// Return array with resized image information
+			$image_array = array(
+				'url' => $resized_url,
+				'width' => $resized_width,
+				'height' => $resized_height,
+				'type' => $resized_type
+			);
+
+		}
+		else {
+			$image_array = array(
+				'url' => str_replace( basename( $url ), basename( $dest_file_name ), $url ),
+				'width' => $dest_width,
+				'height' => $dest_height,
+				'type' => $ext
+			);
+		}
+
+		return $image_array;
+
+	}
+}
+
+/**
+ *  Deletes the resized images when the original image is deleted from the Wordpress Media Library.
+ *
+ *  @author Matthew Ruddy
+ */
+add_action( 'delete_attachment', 'matthewruddy_delete_resized_images' );
+function matthewruddy_delete_resized_images( $post_id ) {
+
+	// Get attachment image metadata
+	$metadata = wp_get_attachment_metadata( $post_id );
+	if ( !$metadata )
+		return;
+
+	// Do some bailing if we cannot continue
+	if ( !isset( $metadata['file'] ) || !isset( $metadata['image_meta']['resized_images'] ) )
+		return;
+	$pathinfo = pathinfo( $metadata['file'] );
+	$resized_images = $metadata['image_meta']['resized_images'];
+
+	// Get Wordpress uploads directory (and bail if it doesn't exist)
+	$wp_upload_dir = wp_upload_dir();
+	$upload_dir = $wp_upload_dir['basedir'];
+	if ( !is_dir( $upload_dir ) )
+		return;
+
+	// Delete the resized images
+	foreach ( $resized_images as $dims ) {
+
+		// Get the resized images filename
+		$file = $upload_dir .'/'. $pathinfo['dirname'] .'/'. $pathinfo['filename'] .'-'. $dims .'.'. $pathinfo['extension'];
+
+		// Delete the resized image
+		@unlink( $file );
+
+	}
+
+}

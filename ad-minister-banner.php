@@ -23,8 +23,7 @@
 		if ( $_POST['save'] ) {
 					
 			$content = administer_get_content();
-			$index = count( $content );
-
+			
 			// Required parameters
 			$id = ( $_POST['id'] ) ? $_POST['id'] : administer_get_available_id();
 			$content[$id]['id'] = $id;
