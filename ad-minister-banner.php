@@ -1,12 +1,16 @@
 <div class="wrap">
 	<?php
-	if ( $_POST['delete'] ) {
-		// We are not editing i.e. this is a new ad
-		if ( $_GET['action'] == 'edit' )
-			unset( $_GET['action'], $_GET['id'] );
-	}
-			
-	if ( $_GET['action'] == 'edit' ) {
+	$is_save = isset( $_POST['save'] );
+	$is_delete = isset( $_POST['delete'] );
+	
+	$action = isset( $_GET['action'] ) ? $_GET['action'] : '';
+	$is_edit = ( !$is_delete ) && ( $action == 'edit' ); 
+	$edit_id = ( $is_edit && isset( $_GET['id'] ) ) ? $_GET['id'] : '';
+	
+	$resetimpressions = isset( $_GET['resetimpressions'] ) && ( $_GET['resetimpressions'] == 'true' );
+	$resetclicks = isset( $_GET['resetclicks'] ) && ( $_GET['resetclicks'] == 'true' );
+	
+	if ( $is_edit ) {
 	?>
 		<h2>Edit Banner <a href="<?php echo administer_get_page_url( "banner" ); ?>" class="add-new-h2">Add New</a></h2>
 	<?php
@@ -20,31 +24,31 @@
 	<div>
 		<?php
 		// Check to see that we have everything we need
-		if ( $_POST['save'] ) {
+		if ( $is_save ) {
 					
 			$content = administer_get_content();
 			
 			// Required parameters
-			$id = ( $_POST['id'] ) ? $_POST['id'] : administer_get_available_id();
+			$id = administer_get_post_var( 'id' ) ? administer_get_post_var( 'id' ) : administer_get_available_id();
 			$content[$id]['id'] = $id;
-			$content[$id]['position'] = $_POST['position']; 
-			$content[$id]['code'] = $_POST['content'];
-			$content[$id]['title'] = $_POST['title'];
-			$content[$id]['ad_media_url'] = $_POST['ad_media_url'];
-			$content[$id]['ad_size'] = $_POST['ad_size'];
-			$content[$id]['ad_mode'] = $_POST['ad_mode'];
+			$content[$id]['position'] = administer_get_post_var( 'position' ); 
+			$content[$id]['code'] = administer_get_post_var( 'content' );
+			$content[$id]['title'] = administer_get_post_var( 'title' );
+			$content[$id]['ad_media_url'] = administer_get_post_var( 'ad_media_url' );
+			$content[$id]['ad_size'] = administer_get_post_var( 'ad_size' );
+			$content[$id]['ad_mode'] = administer_get_post_var( 'ad_mode' );
 			//$content[$id]['ad_modes_synced'] = !empty( $_POST['ad_modes_synced'] ) ? 'checked ' : '';
 			
 			// Optional parameters
-			$content[$id]['ad_link_url'] = $_POST['ad_link_url'];
-			$content[$id]['ad_audio_url'] = $_POST['ad_audio_url'];
-			$content[$id]['ad_hint'] = $_POST['ad_hint'];	
-			$content[$id]['scheduele'] = $_POST['scheduele'];
-			$content[$id]['impressions'] = $_POST['impressions'];
-			$content[$id]['clicks'] = $_POST['clicks'];
-			$content[$id]['show'] = ($_POST['show'] == 'on') ? 'true' : 'false';
-			$content[$id]['weight'] = $_POST['weight'];
-			$content[$id]['wrap'] = ($_POST['wrap']) ? 'true' : 'false';
+			$content[$id]['ad_link_url'] = administer_get_post_var( 'ad_link_url' );
+			$content[$id]['ad_audio_url'] = administer_get_post_var( 'ad_audio_url' );
+			$content[$id]['ad_hint'] = administer_get_post_var( 'ad_hint' );	
+			$content[$id]['scheduele'] = administer_get_post_var( 'scheduele' );
+			$content[$id]['impressions'] = administer_get_post_var( 'impressions' );
+			$content[$id]['clicks'] = administer_get_post_var( 'clicks' );
+			$content[$id]['show'] = ( administer_get_post_var( 'show' ) == 'on' ) ? 'true' : 'false';
+			$content[$id]['weight'] = administer_get_post_var( 'weight' );
+			$content[$id]['wrap'] = administer_get_post_var( 'wrap' ) ? 'true' : 'false';
 
 			// Build code from field information if in basic mode
 			if ( ( $content[$id]['ad_mode'] == 'mode_basic' ) and ( $content[$id]['code'] == '') ) {
@@ -54,13 +58,17 @@
 			// Save ad content
 			administer_update_content( $content );
 			
+			do_action( 'administer_edit_ad', $content[$id] );
+			
 			// Notify
 			echo '<div id="message" class="updated fade"><p><strong>' . __('Banner Saved.', 'ad-minister') . '</strong></p></div>';
 		
-		} else if ( $_POST['delete'] ) {
+		} else if ( $is_delete ) {
 			// Delete ad content data
-			administer_delete_ad( $_POST['id'] );
-				
+			$id = administer_get_post_var( 'id' );
+			
+			administer_delete_ad( $id );
+			
 			// Notify 
 			echo '<div id="message" class="updated fade"><p><strong>' . __('Deleted!', 'ad-minister') . '</strong></p></div>';
 		}
@@ -70,30 +78,47 @@
 			echo '<div id="message" class="updated fade"><p><strong>' . __('There is no content! Do make some.', 'ad-minister') . '</strong></p></div>';
 
 		// Are we editing?
-		if ($_GET['action'] == 'edit') {
-			if ( !$value ) $value = $content[$_GET['id']];
+		if ( $is_edit && $edit_id ) {
+			$value = $content[$edit_id];
 			
 			// For legacy ads
-			$value['ad_mode'] = ( !$value['ad_mode'] ) ? 'mode_advanced' : $value['ad_mode'];
+			$value['ad_mode'] = !isset( $value['ad_mode'] ) ? 'mode_advanced' : $value['ad_mode'];
 			$value['ad_size'] = ( $value['ad_size'] == 'Actual' ) ? '' : $value['ad_size'];
 			
-			if ($_GET['resetimpressions'] == 'true') {
-				administer_reset_impressions( $_GET['id'] );
+			if ( $resetimpressions ) {
+				administer_reset_impressions( $edit_id );
 			}
-			if ($_GET['resetclicks'] == 'true') {
-				administer_reset_clicks( $_GET['id'] );
+			if ( $resetclicks ) {
+				administer_reset_clicks( $edit_id );
 			}			
 		}
 		else {
 			// New ad
 			$value = array(
-			'id' => administer_get_available_id(),
-			'ad_mode' => 'mode_basic'
+				'id' => administer_get_available_id(),
 			);
 			administer_reset_stats( $value['id'] );
 		}
 		
-		$checked_visible = ($value['show'] == 'true' || !$value['show']) ? 'checked="checked"' : ''; 
+		$value = wp_parse_args( $value, array(
+			'position' => '',
+			'code' => '',
+			'title' => '',
+			'ad_media_url' => '',
+			'ad_size' => '',
+			'ad_mode' => 'mode_basic',
+			'ad_link_url' => '',
+			'ad_audio_url' => '',
+			'ad_hint' => '',
+			'scheduele' => '',
+			'impressions' => 0,
+			'clicks' => 0,
+			'show' => 'true',
+			'weight' => 1,
+			'wrap' => 'true',
+		) );	
+		
+		$checked_visible = ( !isset( $value['show'] ) ) || ( !$value['show'] ) || ( $value['show'] == 'true' ) ? 'checked="checked"' : ''; 
 		$checked_wrap = 'checked="checked" disabled="disabled"'; //( ( $value['wrap'] == 'true' ) || !$value['wrap'] ) ? 'checked="checked"' : '';
 		?>
 
@@ -101,7 +126,7 @@
 		<form id="post" name="post" method="POST" action="<?php echo $url; ?>">
 			<div class="wrap">	
 				<?php 
-				if ( $_GET['action'] == 'edit' ) { 
+				if ( $is_edit ) { 
 					$impressions = administer_get_impressions( $value['id'] );
 					$impressions = ( $impressions == 1 ) ? '1 ' . __('impression', 'ad-minister') : $impressions . ' ' . __('impressions', 'ad-minister');
 					$clicks = administer_get_clicks( $value['id'] );
@@ -139,7 +164,7 @@
 							<label class="create" for="title"><?php _e('Title', 'ad-minister'); ?>: </label>
 						</td>
 						<td>
-							<input class="create" name="title" id="title" type="text" value="<?php echo administer_f($value['title']); ?>"><br />
+							<input class="create" name="title" id="title" type="text" value="<?php echo administer_f( $value['title'] ); ?>"><br />
 							<div class="hide-info" id="title_info"></div>
 						</td>
 					</tr>			
@@ -167,7 +192,7 @@
 							<select id="ad_size" name="ad_size">
 								<?php
 								//if ( !$value['ad_size'] ) $value['ad_size'] = '306x300';
-								$options = array( '306x60', '306x140', '306x250', '306x300', '474x270', '474x560', '642x100', '642x140', '978x100' );
+								$options = array( '100x651', '306x60', '306x140', '306x250', '306x300', '474x270', '474x560', '642x100', '642x140', '978x100' );
 								foreach ($options as $option) {
 									$dims = explode( 'x', $option );
 									echo "<option value='$option' " . ( ( $option == $value['ad_size'] ) ? "selected" : "" ) . ">{$dims[0]} x {$dims[1]}</option>";
@@ -326,7 +351,7 @@
 					<!-- Preview Button -->
 					<input id="preview-button" title="Advertisement Preview" class="button" type="button" value="Preview" />
 					
-					<?php if ( $_GET['action'] == 'edit' ) : ?>
+					<?php if ( $is_edit ) : ?>
 						<!--Delete Button -->
 						<input id="delete" name="delete" class="button" type="submit" value="<?php _e('Delete this', 'ad-minister'); ?>">
 					<?php endif; ?>

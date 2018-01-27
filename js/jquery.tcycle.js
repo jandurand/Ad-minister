@@ -57,7 +57,7 @@
 					
 			if (c.css(p)=='static')
 				css[p]='relative';
-			c.prepend($(s[0]).clone().css('visibility','hidden')).css(css);
+			c.prepend($(s[0]).clone().css('visibility','hidden').css('opacity','0')).css(css);
 			s.css(scss);
 			if(f)
 				s.hide().eq(0).show();

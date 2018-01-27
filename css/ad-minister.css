@@ -126,7 +126,6 @@ label.create {
 .tabs li a
 {
 	background: #fff;
-	border: 1px solid #fff;
 	border: 1px solid #dedede;
 	padding: 6px;
 	display: block;
@@ -136,14 +135,12 @@ label.create {
 .tabs li a:hover 
 {
 	border: 1px solid #bbb;
-	/*border-bottom: none;*/
 }
 
 .tabs li a.tabs-current
 {
-	/*border: 1px solid #dedede;*/
 	color: #D54E21;
-	/*border-bottom: 1px solid #fff;*/
+	border-bottom: 1px solid #fff;
 }
 
 div th a {
@@ -188,16 +185,40 @@ span.error {
  Banner Styles
 *************************************************************************************/
 
+/* Allow height to grow to contain floating elements */
+.administer-ad-container:before,
+.administer-ad:before,
+.administer-ad-container:after,
+.administer-ad:after {
+	content: ""; 
+	display: table;
+}
+.administer-ad-container:after,
+.administer-ad:after {
+	clear: both;
+}
+.administer-ad-container,
+.administer-ad {
+	zoom: 1;
+} /* For IE 6/7 (trigger hasLayout) */
+
+
 .administer-ad {
 	position: relative;
+	display: none;
 }
 
 .administer-ad,
 .administer-ad img, 
 .administer-ad object, 
 .administer-ad embed,
+.administer-ad video,
 .administer-ad iframe {
 	width: 100%;
+}
+
+.administer-ad img {
+	height: auto;
 }
 
 .administer-ad a.block-content-link {
@@ -212,5 +233,16 @@ span.error {
 }
 
 /** Rotating Banners **/
-.tcycle .administer-ad { display: none }
-.tcycle .administer-ad.first-ad { display: block }
+.tcycle .administer-ad { 
+	display: none 
+}
+
+.tcycle .administer-ad.first-ad,
+.tcycle .administer-ad:first-child { 
+	display: block 
+}
+
+.administer-ad.first-ad .administer-lazy-load, 
+.administer-ad :first-child .administer-lazy-load { 
+	display: none 
+}

@@ -88,11 +88,11 @@
 			if (!$table['position'] || $table['position'][$i] == '-') $table['weight'][$i] = '';
 
 			// Format impressions
-			$impressions = ($stats[$ad['id']]['i']) ? $stats[$ad['id']]['i'] : '0';
+			$impressions = isset( $stats[$ad['id']]['i'] ) ? $stats[$ad['id']]['i'] : '0';
 			$impressions = ($ad['impressions']) ? $impressions . ' of ' . $ad['impressions'] : $impressions;
 
 			// Format clicks
-			$clicks = ($stats[$ad['id']]['c']) ? $stats[$ad['id']]['c'] : '0';
+			$clicks = isset( $stats[$ad['id']]['c'] ) ? $stats[$ad['id']]['c'] : '0';
 			$clicks = ($ad['clicks']) ? $clicks . ' of ' . $ad['clicks'] : $clicks;
 
 			$table['clicks'][$i]      = $clicks;
@@ -120,12 +120,13 @@
 		}
 
 		// Do the sorting, only save sort column if we're in admin
-		$saved_sort = (is_admin()) ? get_option('administer_sort_key') : '';
-		if (!($sort = $_GET['sort'])) $sort = ($saved_sort) ? $saved_sort : 'position';
-		if ($sort != $saved_sort && is_admin()) update_option('administer_sort_key', $sort);
-		$order = $_GET['order'];
-		$arr = $table[$sort];
-		if (!is_array($arr)) {
+		$saved_sort = ( is_admin() ) ? get_option( 'administer_sort_key' ) : '';
+		$sort = isset( $_GET['sort'] ) ? $_GET['sort'] : '';
+		if ( !$sort ) $sort = ( $saved_sort ) ? $saved_sort : 'position';
+		if ( ( $sort != $saved_sort ) && is_admin() ) update_option( 'administer_sort_key', $sort );
+		
+		$arr = isset( $table[$sort] ) ? $table[$sort] : '';
+		if ( !is_array( $arr ) ) {
 			echo '<p><strong>' . __('No data available', 'ad-minister') . '.</strong></p>';
 			return 0;
 		}
@@ -143,11 +144,10 @@
 			uasort( $arr, "array_cmp" );
 		}
 		else {
-			natcasesort($arr);
+			natcasesort( $arr );
 		}
 		
-		$arr_keys = array_keys($arr);
-		if ($order == 'down') $arr_keys = array_reverse($arr_keys);
+		$order = isset( $_GET['order'] ) ? $_GET['order'] : '';		
 		$link = administer_get_page_url(); 
 		?>
 		<form id="form_bulk" name="form_bulk" method="POST" action="<?php echo $link; ?>">
@@ -189,6 +189,8 @@
 				</thead>
 
 				<?php 
+				$arr_keys = array_keys( $arr );
+				if ( $order == 'down' ) $arr_keys = array_reverse( $arr_keys );
 				$rownbr = 0;
 				foreach ( $arr_keys as $i ) {
 					$class = ( $rownbr++ % 2 ) ? $table['row-class'][$i] : $table['row-class'][$i] . ' alternate'; 

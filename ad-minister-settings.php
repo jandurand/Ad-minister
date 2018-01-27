@@ -4,7 +4,7 @@
 	<?php
 
 	// Saving our Options.
-	if ( $ad_post_id = $_POST['administer_post_id'] ) {
+	if ( $ad_post_id = administer_get_post_var( 'administer_post_id' ) ) {
 		administer_set_post_id( $ad_post_id );
 		if ( preg_match( '/\d+$/', $ad_post_id ) ) {
 			$the_page = get_page( $ad_post_id );
@@ -14,9 +14,9 @@
 			echo '<div id="message" class="updated fade"><p><strong>' . __('Error! The ID must be a number. Try again.') . '</strong></p></div>';		
 		}
 		
-		update_option('administer_dashboard_period', $_POST['administer_dashboard_period']);
-		update_option('administer_dashboard_percentage', $_POST['administer_dashboard_percentage']);
-		update_option('administer_user_level', $_POST['administer_user_level']);
+		update_option( 'administer_dashboard_period', administer_get_post_var( 'administer_dashboard_period' ) );
+		update_option( 'administer_dashboard_percentage', administer_get_post_var( 'administer_dashboard_percentage' ) );
+		update_option( 'administer_user_level', administer_get_post_var( 'administer_user_level' ) );
 		
 		// Checkboxes...
 		$names = array( 
@@ -29,7 +29,7 @@
 			'administer_resize_image'
 		);
 		foreach ( $names as $name ) {
-			$value = ( $_POST[$name] == 'on' ) ? 'true' : 'false';
+			$value = ( administer_get_post_var( $name ) == 'on' ) ? 'true' : 'false';
 			update_option( $name, $value );		
 		}
 	}
@@ -47,6 +47,9 @@
 	if (!strlen(get_option('administer_rotate_ads')))
 		update_option('administer_rotate_ads', 'false');
 
+	if (!strlen(get_option('administer_rotate_time')))
+		update_option('administer_rotate_time', '15');	
+	
 	if (!strlen(get_option('administer_resize_image')))
 		update_option('administer_resize_image', 'false');
 		
@@ -92,8 +95,8 @@
 			 	<th scope="row" valign="top"><?php _e('Notifications', 'ad-minister'); ?></th>
 			 	<td>
 					<input type="checkbox" id="administer_dashbaord_show" name="administer_dashboard_show" <?php if (get_option('administer_dashboard_show') == 'true') echo ' checked="checked" '; ?> /> <label for="administer_dashbaord_show"><?php _e('Alert on the Dashboard of upcoming content expiration or activation.', 'ad-minister'); ?></label><br />
-					<?php _e('Number of days to check for upcoming events', 'ad-minister'); ?>: <input type="text" name="administer_dashboard_period" value="<?php echo get_option('administer_dashboard_period'); ?>" style="width: 40px;" /><br />
-					<?php _e('Minimum percentage of clicks/impressions left before alerting', 'ad-minister'); ?>: <input type="text" name="administer_dashboard_percentage" value="<?php echo get_option('administer_dashboard_percentage'); ?>" style="width: 40px;" />
+					<?php _e('Number of days to check for upcoming events', 'ad-minister'); ?>: <input type="number" min="1" name="administer_dashboard_period" value="<?php echo get_option('administer_dashboard_period'); ?>" style="width: 60px;" /><br />
+					<?php _e('Minimum percentage of clicks/impressions left before alerting', 'ad-minister'); ?>: <input type="number" min="1" name="administer_dashboard_percentage" value="<?php echo get_option('administer_dashboard_percentage'); ?>" style="width: 60px;" />
 			 	</td>
 			 </tr>
 			 <tr>
@@ -117,7 +120,8 @@
 			 <tr>
 			 	<th scope="row" valign="top"><?php _e('Ad Rotation', 'ad-minister'); ?></th>
 			 	<td>
-					<input type="checkbox" id="administer_rotate_ads" name="administer_rotate_ads" <?php if ( get_option( 'administer_rotate_ads' ) == 'true' ) echo ' checked="checked"'; ?> /> <label for="administer_rotate_ads"><?php _e('Allow multiple advertisements to rotate in a single position within a singe page load?', 'ad-minister'); ?></label>
+					<input type="checkbox" id="administer_rotate_ads" name="administer_rotate_ads" <?php if ( get_option( 'administer_rotate_ads' ) == 'true' ) echo ' checked="checked"'; ?> /> <label for="administer_rotate_ads"><?php _e('Allow multiple advertisements to rotate in a single position within a singe page load?', 'ad-minister'); ?></label><br />
+					<?php _e('Default rotation time', 'ad-minister'); ?>: <input type="number" style="width: 60px;" id="administer_rotate_time" name="administer_rotate_time" min="1" value="<?php echo get_option( 'administer_rotate_time' ); ?>"> (<?php _e('Time between ad rotations in seconds', 'ad-minister'); ?>)	
 			 	</td>
 			 </tr>
 			 <tr>

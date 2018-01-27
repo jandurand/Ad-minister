@@ -79,7 +79,7 @@
 				clearTimeout(tid);
 				transitionOut(a);
 				transitionIn(b);
-				i = i==(l-1) ? 0 : (i+1);
+				i = n;
 			}
 		});
 	};

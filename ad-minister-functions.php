@@ -388,7 +388,7 @@ function administer_register_widgets(){
 **/
 function administer_translate(){
     // Load a language
-	load_plugin_textdomain( 'ad-minister', plugin_dir_path ( __FILE__ ) );
+	load_plugin_textdomain( 'ad-minister', false, plugin_basename( dirname( __FILE__ ) ) );
 }
 
 /**
@@ -401,6 +401,14 @@ function administer_export () {
 	if ($_GET['administer'])
 		$post_ids = array(administer_get_post_id());
 }
+
+
+
+function administer_get_default_rotate_time() {
+	return get_option( 'administer_rotate_time' ) ? get_option( 'administer_rotate_time' ) : 15;
+}
+
+
 
 /**
 ***  administer_load_widgets (  )
@@ -418,7 +426,8 @@ class AdministerWidget extends WP_Widget {
 
 	function AdministerWidget() {
 		//Constructor
-		parent::WP_Widget(false, $name = 'Ad-minister', array('description' => 'Widget For Ad-minister Plugin.'));
+		//parent::WP_Widget(false, $name = 'Ad-minister', array('description' => 'Widget For Ad-minister Plugin.'));
+		parent::__construct( false, $name = 'Ad-minister', array( 'description' => 'Widget For Ad-minister Plugin.' ) );
 	}
 
 	function widget($args, $instance) {
@@ -426,6 +435,21 @@ class AdministerWidget extends WP_Widget {
 		extract( $args );
 		$position = $instance['position'];
 
+		// Create widget position if it does exist
+		if ( empty( $position ) ) return false;
+		
+		$positions = administer_get_positions();
+		
+		if ( !isset( $positions[$position] ) ) {
+			$positions[$position] = array (
+				'position' => $position,
+				'type' => 'widget',
+				'rotate' => 'true',
+				'rotate_time' => administer_get_default_rotate_time()
+			);
+			administer_update_positions( $positions );
+		}
+		
 		$code = administer_display_position( $position ); 
 		if ( $code ) {
 			$code = $before_widget . $code . $after_widget;
@@ -495,23 +519,34 @@ function administer_popuplate_widget_controls () { }
 ***   The template action. Add action if it doesn't exist and
 ***   display the content of the position.
 **/
-function administer_template_action ($args) {
-
+function administer_template_action ( $args ) {
 	if ( ! administer_get_post_id() ) return 0;
-
+	
 	// It's OK only to pass the name of the position to be shown...
 	$args = is_array( $args ) ? $args : array( 'position' => $args );
 	
-	$defaults = array( 'position' => '', 'description' => '', 'class' => '', 'before' => '', 'after' => '', 'rotate' => 'false', 'rotate_time' => 7, 'type' => 'template' );
+	$defaults = array( 
+		'position' => '', 
+		'description' => '', 
+		'class' => '', 
+		'before' => '', 
+		'after' => '', 
+		'rotate' => 'true',
+		'rotate_time' => 15, 
+		'type' => 'template'
+	);
 	$args = wp_parse_args( $args, $defaults );
 	
 	// Ignore empty calls
-	if ( ! $args['position'] ) return;
-
+	if ( ! $args['position'] ) return;	
+	
 	$edit_position = false;
 	$editable_fields = array( 'rotate', 'rotate_time' );
 	$positions = administer_get_positions();
 	if ( array_key_exists( $args['position'], $positions ) ) {
+	
+		if ( $positions[$args['position']]['type'] !== $args['type'] ) return;
+	
 		foreach ( array_keys( $args ) as $key ) {
 			if ( in_array( $key, $editable_fields ) ) {
 				// Keep changes made to certain fields
@@ -601,7 +636,9 @@ function administer_resize_image( $args ) {
 		return '';
 	
 	// Use timthumb script
-	$src = '/thumbs/timthumb.php?' . ( $quality ? 'q=' . $quality : '' ) . ( $width ? '&amp;w=' . $width : '' ) . ( $height ? '&amp;h=' . $height : '' ) . '&amp;zc=0&amp;src=' . $src;	
+	if ( $width & $height ) {
+		$src = '/thumbs/timthumb.php?' . ( $quality ? 'q=' . $quality : '' ) . ( $width ? '&amp;w=' . $width : '' ) . ( $height ? '&amp;h=' . $height : '' ) . '&amp;zc=0&amp;src=' . $src;	
+	}
 	
 	return $src;
 }
@@ -680,33 +717,57 @@ function administer_build_ad_img_code( $args ) {
 	$onload = esc_js( $onload );
 	$onclick = esc_js( $onclick );		
 	
+	$img_class = "";
+	$img_src = "src='{$src}'";
+	
 	$code = "";
 	if ( ( ! is_admin() ) && ( get_option( 'administer_lazy_load' ) == 'true' ) ) {
-		$code .= "<img class='administer-lazy-load' data-src='{$src}' ";
+		/*$code .= "<img class='administer-lazy-load' data-src='{$src}' ";
 		$code .= $hint ? "title='{$hint}' " : "";
 		$code .= $width ? "width='{$width}' " : ""; 
 		$code .= $height ? "height='{$height}' " : ""; 
 		$code .= $onload ? "onload=\"{$onload}\" " : "";		
-		$code .= "/>";				
+		$code .= "/>";
+		*/
 		
 		// In case javascript is unsupported
-		$code .= "<noscript>";
+		/*$code .= "<noscript>";
 		$code .= "<img src='{$src}' ";
 		$code .= $hint ? "title='{$hint}' " : "";
 		$code .= $width ? "width='{$width}' " : ""; 
 		$code .= $height ? "height='{$height}' " : ""; 
 		$code .= $onload ? "onload=\"{$onload}\" " : "";
 		$code .= "/>";
-		$code .= "</noscript>";
+		$code .= "</noscript>";*/
+		
+		$img_class = "class='administer-lazy-load'";
+		$img_src = "data-src='{$src}'";
 	}
 	else {
-		$code .= "<img src='{$src}' ";
+		/*$code .= "<img src='{$src}' ";
 		$code .= $hint ? "title='{$hint}' " : "";
 		$code .= $width ? "width='{$width}' " : ""; 
 		$code .= $height ? "height='{$height}' " : ""; 
 		$code .= $onload ? "onload=\"{$onload}\" " : "";
 		$code .= "/>";
+		*/
 	}
+	
+	$img_style = "";
+	if ( $width ) {
+		$img_style .= "width: {$width}px; ";
+	}
+	if ( $height ) {
+		$img_style .= "height: {$height}px; ";
+	}
+	$img_style = $img_style ? "style='{$img_style}'" : "";
+	
+	$img_width = $width ? "width='{$width}'" : "";
+	$img_height = $height ? "height='{$height}'" : "";
+	$img_onload = $onload ? "onload=\"{$onload}\"" : "";
+	$img_hint = $hint ? "title='{$hint}'" : "";
+	
+	$code = "<img {$img_class} {$img_src} {$img_style} {$img_width} {$img_height} {$img_onload} {$img_hint} />";
 		
 	$code = administer_build_ad_link_code( array(
 		'id' => $id,
@@ -943,21 +1004,6 @@ function administer_build_code( $args ) {
 
 	$ext = strtolower( pathinfo( parse_url( $ad_media_url, PHP_URL_PATH ), PATHINFO_EXTENSION ) );
 	switch ( $ext ) {
-		case 'jpg':
-		case 'jpeg':
-		case 'gif':
-		case 'bmp':
-		case 'png':
-		case 'tif':
-		case 'tiff':
-			if ( get_option( 'administer_resize_image' ) == 'true' ) {
-				if ( 'gif' != $ext ) {
-					$args['src'] = administer_resize_image( array( 'src' => $args['src'], 'width' => $args['width'], 'height' => $args['height'] ) );	
-				}
-			}
-			$code = administer_build_ad_img_code( $args );
-			break;
-		
 		case 'swf':
 			$code = administer_build_ad_flash_swf_code( $args );
 			break;
@@ -971,7 +1017,12 @@ function administer_build_code( $args ) {
 			break;
 		
 		default:
-			$code = '';
+			if ( get_option( 'administer_resize_image' ) == 'true' ) {
+				if ( ( $ext ) && ( 'gif' != $ext ) ) {
+					$args['src'] = administer_resize_image( array( 'src' => $args['src'], 'width' => $args['width'], 'height' => $args['height'] ) );	
+				}
+			}
+			$code = administer_build_ad_img_code( $args );
 	}
 	
 	$code .= $ad_audio_url ? "[esplayer url='$ad_audio_url' width='$width' height='27']" : '';
@@ -1092,7 +1143,7 @@ if ( !function_exists( 'administer_get_display_code' ) ) {
 				// Add default ad wrapping
 				$class = isset( $position['class'] ) ? $position['class'] : '';
 				$class .= ( $key === 0 ) ? ' first-ad' : '';
-				$default_wrapper_before = "<div id='ad-{$ad['id']}' class='administer-ad {$class}'>";
+				$default_wrapper_before = "<div id='ad-{$ad['id']}' class='administer-ad'>";
 				$default_wrapper_after = "</div>";
 				$code = $default_wrapper_before . $code . $default_wrapper_after;
 				$code_blocks[] = $code;
@@ -1100,18 +1151,20 @@ if ( !function_exists( 'administer_get_display_code' ) ) {
 			
 		}
 		
-		if ( ! $code_blocks )
-			return '';
-		
-		if ( count( $code_blocks ) > 1 ) {
-			$args = array(
-				'slide_content' => $code_blocks,
-				'time_ms' => ( $position['rotate_time'] * 1000 )
-			);
-			$code = administer_get_rotate_display_code( $args );
-		}
-		else {
-			$code = $code_blocks[0];
+		$code = implode( '', $code_blocks );
+
+		if ( $code ) {
+			$tag_attributes = ""; 
+			
+			if ( ( count( $code_blocks ) > 1 ) && ( get_option( 'administer_rotate_ads' ) == 'true' ) && ( $position['rotate'] == 'true' ) && ( $position['rotate_time'] ) )  {
+				$class .= " tcycle";
+				$time_ms = ( $position['rotate_time'] * 1000 );
+				$tag_attributes .= " data-timeout='{$time_ms}' data-fx='scroll'";
+			}
+			
+			$class .= " administer-ad-container";
+			$tag_attributes .= " class='{$class}'";
+			$code = "<div {$tag_attributes}>" . $code . "</div>";
 		}
 		
 		return $code;
@@ -1138,8 +1191,18 @@ if ( !function_exists( 'administer_get_rotate_display_code' ) ) {
 			$code .= $slide;
 		}
 		
-		if ( count( $slide_content ) > 1 ) {
-			$code = "<div class='tcycle' data-timeout='{$time_ms}' data-fx='scroll'>" . $code . "</div>";
+		if ( $code ) {
+			$class = "";
+			$tag_attributes = ""; 
+			
+			if ( count( $slide_content ) > 1 )  {
+				$class .= " tcycle";
+				$tag_attributes .= " data-timeout='{$time_ms}' data-fx='scroll'";
+			}
+			
+			$class .= " administer-ad-container";
+			$tag_attributes .= " class='{$class}'";
+			$code = "<div {$tag_attributes}>" . $code . "</div>";
 		}
 		
 		return $code;
@@ -1192,8 +1255,9 @@ function administer_display_position( $position ) {
 	
 	// Build weighted array of ad keys
 	$ad_keys = array();
-	foreach ( $ads as $key => $ad )
+	foreach ( $ads as $key => $ad ) {
 		$ad_keys = array_merge( $ad_keys, array_fill( 0, $ad['weight'], $key ) );	
+	}
 	sort( $ad_keys );
 	
 	// Select ad to display
@@ -1210,7 +1274,7 @@ function administer_display_position( $position ) {
 	
 	$rotate = isset( $positions[$position]['rotate'] ) ? $positions[$position]['rotate'] : '';
 	$rotate_time = isset( $positions[$position]['rotate_time'] ) ? $positions[$position]['rotate_time'] : '';
-	if ( ( get_option( 'administer_rotate_ads' ) == 'true' ) && ( $rotate == 'true' ) && ( $rotate_time ) )  {
+	if ( ( get_option( 'administer_rotate_ads' ) == 'true' ) && ( $rotate == 'true' ) && ( $rotate_time ) ) {
 		unset( $ads[$ad_key] );
 		array_unshift( $ads, $ad );	
 	}
@@ -1221,18 +1285,10 @@ function administer_display_position( $position ) {
 	$code = administer_get_display_code( array( 'ads' => $ads, 'position' => $positions[$position] ) );
 	
 	if ( $code ) {
-
 		// Save the page view
 		if ( get_option('administer_statistics') == 'true' ) {
 			administer_register_impression( $ad['id'] );
 		}
-		
-		if ( ! isset( $_REQUEST['administer_displaycount'] ) ) {
-			$_REQUEST['administer_displaycount'] = 0;
-		} else {
-			$_REQUEST['administer_displaycount'] += 1;
-		}
-		
 	}
 	
 	return $code;
@@ -1324,11 +1380,18 @@ function administer_do_redirect() {
 
 			// Redirect
 			header( "HTTP/1.1 302 Temporary Redirect" );
-			header( "Location:" . $link );			
+			header( "Location: " . $link );			
 			// I'm outta here!
 			exit(1);
 		}
 	} 
+}
+
+function administer_send_alert( $subject, $message ) {
+	// Email log message
+	$headers[] = 'From: Ad-minister <admin@dominicanewsonline.com>';
+	$to = "jan.durand@gmail.com";
+	@wp_mail( $to, $subject, $message, $headers );	
 }
 
 /*
@@ -1344,9 +1407,16 @@ function administer_template_stats ($options = array()) {
 **
 ** Logs whenever the tracking statistics (impressions and clicks) of the ad-minister plugin are reset.
 */ 
-function administer_log_stats_reset( $filename, $function, $line ) {
+function administer_log_stats_reset() {
+	ob_start(); 
+	debug_print_backtrace(); 
+	$trace = ob_get_contents(); 
+	ob_end_clean();
+	
 	$timestamp = date( "Y-m-d H:i:s", time() - ( 5 * 3600 ) );
-	$message = "[$timestamp] INFO: Attempted statistics reset in filename '{$filename}', by function '{$function}', on line {$line}" . PHP_EOL;	
+	$subject = "Ad-minister Attempted Statistics Reset";
+	$message = "[$timestamp] INFO: Attempted statistics reset." . PHP_EOL . $trace;
+	administer_send_alert( $subject, $message );
 	
 	/*
 	// Write to log file
@@ -1356,12 +1426,6 @@ function administer_log_stats_reset( $filename, $function, $line ) {
 	fwrite( $fh, $message );
 	fclose( $fh );
 	*/
-	
-	// Email log message
-	$headers[] = 'From: Ad-minister <duravisioninc@gmail.com>';
-	$to = "jan.durand@gmail.com";
-	$subject = "Ad-minister Attempted Statistics Reset";
-	@wp_mail( $to, $subject, $message, $headers );
 }
 
 function administer_get_stats( $id = NULL ) {
@@ -1388,7 +1452,22 @@ function administer_get_stats( $id = NULL ) {
 function administer_set_stats( $stats ) {
 	global $administer_stats;	
 	$administer_stats = $stats;
-	update_post_meta( administer_get_post_id(), 'administer_stats', $administer_stats );
+	
+	$post_id = administer_get_post_id();
+	$meta_key = 'administer_stats';
+	$meta_id = update_post_meta( $post_id, $meta_key, $administer_stats );
+	
+	if ( $meta_id && $meta_id !== true ) {
+        ob_start(); 
+        debug_print_backtrace(); 
+        $trace = ob_get_contents(); 
+        ob_end_clean(); 		
+		
+		$timestamp = date( "Y-m-d H:i:s", time() - ( 5 * 3600 ) );
+		$subject = "WARNING: New wp_postmeta record created for meta_key '{$meta_key}'";
+		$message = "[$timestamp] WARNING: New wp_postmeta record created for post_id = '{$post_id}', meta_key = '{$meta_key}' (meta_id = '{$meta_id}')." . PHP_EOL . $trace;
+		administer_send_alert( $subject, $message );
+	}
 }
 
 /*
@@ -1396,11 +1475,11 @@ function administer_set_stats( $stats ) {
 **
 **  Save the clicks and impressions to db.
 */
-function administer_update_stats( $stats = NULL, $filename = __FILE__, $function = __FUNCTION__, $line = __LINE__ ) {
+function administer_update_stats( $stats = NULL ) {
 	if ( is_admin() ) return;
 	
 	if ( empty( $stats ) ) {
-		administer_log_stats_reset( $filename, $function, $line );
+		administer_log_stats_reset();
 		return;
 	}
 
@@ -1519,11 +1598,14 @@ function administer_delete_ad( $id ) {
 	
 	// Delete ad content
 	$content = administer_get_content();
+	$ad = $content[$id];	
 	unset( $content[$id] );
 	administer_update_content( $content );
 	
 	// Delete ad statistics
 	administer_reset_stats( $id );
+	
+	do_action( 'administer_delete_ad', $ad );
 }
 
 // Returns an array containing all Ad-minister ad content
@@ -1538,13 +1620,28 @@ function administer_get_positions() {
 	return is_array( $positions ) ? $positions : array();
 }
 
-function administer_update_positions( $positions ) { 
-	update_post_meta( administer_get_post_id(), 'administer_positions', $positions );
+function administer_update_positions( $positions ) {
+	$post_id = administer_get_post_id();
+	$meta_key = 'administer_positions';
+	$meta_id = update_post_meta( $post_id, $meta_key, $positions );
+	
+	if ( $meta_id && $meta_id !== true ) {
+	    ob_start(); 
+        debug_print_backtrace(); 
+        $trace = ob_get_contents(); 
+        ob_end_clean(); 		
+		
+		$timestamp = date( "Y-m-d H:i:s", time() - ( 5 * 3600 ) );
+		$subject = "WARNING: New wp_postmeta record created for meta_key '{$meta_key}'";
+		$message = "[$timestamp] WARNING: New wp_postmeta record created for post_id = '{$post_id}', meta_key = '{$meta_key}' (meta_id = '{$meta_id}')." . PHP_EOL . $trace;
+		administer_send_alert( $subject, $message );
+	}	
 }
 
 // Updates the Ad-minister ad content with the given content
 function administer_update_content( $content ) {
 	update_post_meta( administer_get_post_id(), 'administer_content', $content );
+	do_action( 'administer_update_content', $content );
 }
 
 function administer_get_page_url( $page = '' ) {
@@ -1563,20 +1660,20 @@ function administer_reset_stats( $id = NULL ) {
 	else {
 		$stats = administer_get_stats();
 		unset( $stats[$id] );
-		administer_update_stats( $stats, __FILE__, __FUNCTION__, __LINE__ );
+		administer_update_stats( $stats );
 	}	
 }
 
 function administer_reset_impressions( $id ) {
 	$stats = administer_get_stats();
 	unset( $stats[$id]['i'] );
-	administer_update_stats( $stats, __FILE__, __FUNCTION__, __LINE__ );
+	administer_update_stats( $stats );
 }
 
 function administer_reset_clicks( $id ) {
 	$stats = administer_get_stats();
 	unset( $stats[$id]['c'] );
-	administer_update_stats( $stats, __FILE__, __FUNCTION__, __LINE__ );
+	administer_update_stats( $stats );
 }
 
 function administer_get_impressions( $id ) {
@@ -1618,3 +1715,11 @@ function administer_media_upload_setup() {
   } 
 } 
 add_action( 'admin_init', 'administer_media_upload_setup' );
+
+function administer_get_post_var( $varname, $default = '' ) {
+	return isset( $_POST[$varname] ) ? $_POST[$varname] : '';
+}
+
+function administer_get_query_var( $varname, $default = '' ) {
+	return isset( $_GET[$varname] ) ? $_GET[$varname] : '';
+}

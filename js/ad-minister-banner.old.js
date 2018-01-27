@@ -1,30 +1,9 @@
-// General Admin Functions
-jQuery(document).ready(function() {
-	// Tests if a given Date() instance is valid
-	function isValidDate(d) {
-  		if ( Object.prototype.toString.call(d) !== "[object Date]" )
-   			return false;
-  		return !isNaN(d.getTime());
-	}
-	
-	String.prototype.format = function() {
-	  var args = arguments;
-	  return this.replace(/{(\d+)}/g, function(match, number) { 
-	    return typeof args[number] != 'undefined'
-	      ? args[number]
-	      : match
-	    ;
-	  });
-	};
-});
-
-
-// Administer Banner Page Functions
 jQuery(document).ready(function() {
 	var mode, formfield;
+	var media_upload_url = 'media-upload.php?';
+	var media_upload_params = 'tab=library&amp;referer=ad-minister&amp;post_id=0&amp;TB_iframe=true';
 	
 	// Ad-minister 'Create Content' form controls
-	var ad_id = jQuery('#id');
 	var ad_title = jQuery('#title');
 	var	ad_title_info = jQuery('#title_info');
 	var	ad_media_url = jQuery('#ad_media_url');
@@ -88,7 +67,7 @@ jQuery(document).ready(function() {
 	// Validates 'Media URL' field
 	function validate_ad_media_url() {
 		if (ad_media_url.val() == "") {
-      ad_media_url.focus();
+      		ad_media_url.focus();
 			ad_media_url.addClass("error"); // adding css error class to the control
 			ad_media_url_info.text("Media URL cannot be empty"); 
 			ad_media_url_info.addClass("error"); //add error class to info span
@@ -224,70 +203,21 @@ jQuery(document).ready(function() {
 		}
 	});
 	 
-	function select_media(options) {
-    if (typeof(options) === 'undefined') return false;
-		if ((typeof(options) !== 'object') && (typeof(options) !== 'function')) return false;
-		
-		if (typeof(options) === 'function') {
-			options = {
-				select: options,
-				title: 'Select Media',
-				button_text: 'Select',
-				media_type: '' // Show All
-			}
-		} 
-		if (typeof(options.title) === 'undefined') options.title = 'Select Media';
-		if (typeof(options.button_text) === 'undefined') options.button_text = 'Select';
-		if (typeof(options.media_type) === 'undefined') options.media_type = '';
-		
-		var custom_uploader = wp.media({
-        frame: 'select',
-				title: options.title,
-        button: { text: options.button_text },
-				library: { type: options.media_type },
-        multiple: false  // Set this to true to allow multiple files to be selected
-    })
-    .on('select', function() {
-        var attachment = custom_uploader.state().get('selection').first().toJSON();
-        options.select(attachment.url);
-    })
-    .open();		
-	}
-
 	jQuery('#ad_media_button').click(function() {
- 	 	select_media({
-			select: function (url) {
-				ad_media_url.val(url);
-				return url;
-			},
-			title: 'Select Banner Image/Animation'
-		});
-		
-	  return false;       
+		formfield = ad_media_url;
+		tb_show('Select Banner Image/Animation', media_upload_url + media_upload_params, false);
+		return false;
 	});
 	
 	jQuery('#ad_link_button').click(function() {
-		select_media({
-			select: function (url) {
-				ad_link_url.val(url);
-				return url;
-			},
-			title: 'Select Banner Attachment'
-		});
-			
+		formfield = ad_link_url;
+		tb_show('Select Banner Attachment', media_upload_url + media_upload_params, false);
 		return false;
 	});
 	
 	jQuery('#ad_audio_button').click(function() {
-		select_media({
-			select: function (url) {
-				ad_audio_url.val(url);
-				return url;
-			},
-			title: 'Select Banner Audio', 
-			media_type: 'audio'
-		});
-
+		formfield = ad_audio_url;
+		tb_show('Select Banner Audio', media_upload_url + 'type=audio&amp;' + media_upload_params, false);
 		return false;
 	});
 
@@ -295,42 +225,54 @@ jQuery(document).ready(function() {
 	jQuery('#preview-button').click(function() {
 		return preview_ad_content();
 	});
-		
+
+	// Modify information returned form 'Media Uploader' dialog window
+	window.original_send_to_editor = window.send_to_editor; 
+	window.send_to_editor = function(html) {
+		if ((document.URL.indexOf("ad-minister") != -1) && (ad_mode.val() == 'mode_basic')) {
+			var src = get_media_src_url(html);
+			formfield.val(src).change().focus().select();
+			tb_remove();
+		}
+		else {
+			return window.original_send_to_editor(html);
+		}
+	}
+	
 	// Ad-minister Mode Tabs
 	ad_mode_tabs.each(function(){
-    // For each set of tabs, we want to keep track of
-    // which tab is active and it's associated content
-    var $active, $content, $links = jQuery(this).find('a');
+	    // For each set of tabs, we want to keep track of
+	    // which tab is active and it's associated content
+	    var $active, $content, $links = jQuery(this).find('a');
 
-	  // If no match is found, use the first link as the initial active tab.
+	    // If no match is found, use the first link as the initial active tab.
 		$active = jQuery($links.filter('[id="' + ad_mode.val() + '"]')[0] || $links[0]);	
 		$active.addClass('tabs-current');
-	  $content = jQuery('.' + $active.attr('id'));
+	    $content = jQuery('.' + $active.attr('id'));
 		ad_mode.val($active.attr('id'));
 		
-    // Hide the remaining content
-    $links.not($active).each(function () {
-        jQuery('.' + jQuery(this).attr('id')).hide();
-    });
+	    // Hide the remaining content
+	    $links.not($active).each(function () {
+	        jQuery('.' + jQuery(this).attr('id')).hide();
+	    });
 
-    // Bind the click event handler
-    jQuery(this).on('click', 'a', function(e){
-		
+	    // Bind the click event handler
+	    jQuery(this).on('click', 'a', function(e){
 			// Make the old tab inactive
-	    $active.removeClass('tabs-current');
-	    $content.hide();
-
-	    // Update the variables with the new link and content
-	    $active = jQuery(this);
-	    $content = jQuery('.' + $active.attr('id'));
+	        $active.removeClass('tabs-current');
+	        $content.hide();
+			
+	        // Update the variables with the new link and content
+	        $active = jQuery(this);
+	        $content = jQuery('.' + $active.attr('id'));
 			ad_mode.val($active.attr('id'));
 			
-	    // Make the tab active
-	    $active.addClass('tabs-current');
-	    $content.show();
-				
+	        // Make the tab active
+	        $active.addClass('tabs-current');
+	        $content.show();
+			
 			// Take certain actions depending on the mode selected
-			/*if (ad_modes_synced.attr('checked')) {
+			if (ad_modes_synced.attr('checked')) {
 				switch (ad_mode.val()) {
 					case 'mode_basic':
 						complete_basic_from_advanced();
@@ -342,46 +284,12 @@ jQuery(document).ready(function() {
 						complete_advanced_from_basic();	
 						break;
 				}
-			}*/
-				
-	    // Prevent the anchor's default click action
-	    e.preventDefault();
-		});
-	});
-	
-	if (!Array.prototype.map) {
-	  Array.prototype.map = function(func /*, thisp*/) {
-	    var len = this.length;
-	    if (typeof func != "function")
-	      throw new TypeError();
-
-	    var res = new Array(len);
-	    var thisp = arguments[1];
-	    for (var i = 0; i < len; i++) {
-	      if (i in this)
-	        res[i] = func.call(thisp, this[i], i, this);
-	    }
-
-	    return res;
-	  };
-	}
-
-	if (!Array.prototype.closest) {
-		Array.prototype.closest = function(n) {
-			n = +n;
-			if (typeof n != "number")
-	    		throw new TypeError();
-
-			var diff = Number.MAX_VALUE;
-	    	for (var i = 0; i < this.length; ++i) {
-	      		if (i in this) {
-	        		diff = (Math.abs(+this[i] - n) < Math.abs(diff)) ? +this[i] - n : diff;
-				}
 			}
-	
-	    	return n + diff;
-	  	};
-	}
+			
+	        // Prevent the anchor's default click action
+	        e.preventDefault();
+	    });
+	});
 	
 	// Returns the number in the array closest to the given number
 	function getClosestNumber(number, numbers) {
@@ -424,17 +332,8 @@ jQuery(document).ready(function() {
 		pattern = /[\[<][^\]>]+url=['"]([^\s'"\]>]*)['"]/i;
 		value = html.match(pattern);
 		if (value != null) return value[1];
-
-		pattern = /url:\s['"]([^\s'"\,]*)['"]/i;
-		value = html.match(pattern);
-		if (value != null) return value[1];		
-
-		// Try searching for an anchor tag
-		pattern = /<a[^>]+href=['"]([^\s'">]*)['"]/i;
-		value = html.match(pattern);
-		if (value != null) return value[1];
- 
-		return html;
+		 
+		return '';
 	}
 	
 	function get_media_title(html) {
@@ -449,40 +348,16 @@ jQuery(document).ready(function() {
 	
 	function get_media_width(html) {
 		var pattern, width, widths = [306, 474, 642, 978];
-		pattern = /[\[<][^\]>]+width=['"]([\d]+)['"]/i;
+		pattern = /[\[<][^\]>]+width=['"]([^\s'"\]>]*)['"]/i;
 		width = html.match(pattern);
-		//width = (width != null) ? getClosestNumber(width[1], widths) : '306';
-		//return (width != null) ? widths.closest(width[1]) + '' : '306';
-		return (width != null) ? width[1] + '' : '';
+		width = (width != null) ? getClosestNumber(width[1], widths) : '306';
 	}
 	
 	function get_media_height(html) {
 		var pattern, height, heights = [60, 100, 140, 250, 270, 300, 560];
-		pattern = /[\[<][^\]>]+height=['"]([\d]+)['"]/i;
+		pattern = /[\[<][^\]>]+height=['"]([^\s'"\]>]*)['"]/i;
 		height = html.match(pattern);
-		//height = (height != null) ? getClosestNumber(height[1], heights) : '300';
-		//return (height != null) ? heights.closest(height[1]) + '' : '300';
-		return (height != null) ? height[1] + '' : '';
-	}
-	
-	function get_img_dim_str(imgPath) {
-	 	if (jQuery.trim(imgPath) == '') return ''; 
-		
-		var imgHeight;
-	  var imgWidth;
-
-	  function findHHandWW() {
-	    imgHeight = this.height;
-			imgWidth = this.width;
-			return true;
-	  }
-
-    var myImage = new Image();
-    myImage.name = imgPath;
-    myImage.onload = findHHandWW;
-    myImage.src = imgPath;
-	  
-		return imgWidth + 'x' + imgHeight;
+		height = (height != null) ? getClosestNumber(height[1], heights) : '300';
 	}
 	
 	// Fill in basic mode controls from advanced mode html
@@ -493,14 +368,9 @@ jQuery(document).ready(function() {
 		/* Get Media URL first */
 		value = get_media_src_url(html);
 		if (value != '') ad_media_url.val(value);
-		
-		/* Get Media Dimensions */
 		width = get_media_width(html);
 		height = get_media_height(html);
-		var dims = ['306x60', '306x140', '306x250', '306x300', '474x270', '474x560', '642x100', '642x140', '978x100'];
-		value = (dims.indexOf(width + 'x' + height) == -1) ? '' : width + 'x' + height;
-		ad_size.val(value);
-		
+		if (width != '' && height != '') ad_size.val(width + 'x' + height);
 		value = get_media_title(html);	
 		if (value != '') ad_hint.val(value);
 		
@@ -508,7 +378,7 @@ jQuery(document).ready(function() {
 		pattern = /<a[^>]+href=['"]([^\s'"]*)['"]/i;
 		value = html.match(pattern);
 		if (value != null) {
-			ad_link_url.val(value[1].replace('%tracker%', ''));
+			ad_link_url.val(value[1]);
 		}
 		
 		/* Get Audio URL */
@@ -521,37 +391,16 @@ jQuery(document).ready(function() {
 	
 	// Fill in advanced mode html editor from basic mode fields
 	function complete_advanced_from_basic() {
-		administer_build_code(function (html) {
+		var html = get_html_from_basic();
+		if (html !== false) {
 			ad_html.val(html);
-		});
-	}
-	
-	function administer_build_code(onSuccess) {
-		var data = { 
-			action: 'administer_build_code',
-			ad_mode : 'mode_basic',
-			ad_id : ad_id.val(), 
-			ad_media_url : ad_media_url.val(),
-			ad_size : ad_size.val(),
-			ad_link_url : ad_link_url.val(),
-			ad_audio_url : ad_audio_url.val(),
-			ad_hint : ad_hint.val()
-		};
-		jQuery.post(
-      ajaxurl,
-			data,
-      function(response) {
-        onSuccess(response);  
-				return response;
-      }
-    );	
+		}
 	}
 	
 	// Generates and returns the html ad from the basic mode field values
 	function get_html_from_basic() {
 		var	html = '', ext, width, height;
 		width = ad_size.val().split('x');
-		//if (width = 'Actual') width = get_img_dim_str(ad_media_url.val()).split('x'); 
 		height = jQuery.trim(width[1]);
 		width = jQuery.trim(width[0]);
 		if (jQuery.trim(ad_media_url.val()) == '') return false;		
@@ -567,32 +416,22 @@ jQuery(document).ready(function() {
 				html = "<img src='{0}' width='{1}' height='{2}' title='{3}' />".format(ad_media_url.val(), width, height, ad_hint.val());
 				break;
 			case 'swf':
-				/*html = '<object width="{1}" height="{2}" classid="clsid:d27cdb6e-ae6d-11cf-96b8-444553540000"';
+				html = '<object width="{1}" height="{2}" classid="clsid:d27cdb6e-ae6d-11cf-96b8-444553540000"';
 				html += 'codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0">';
 				html += '<param name="quality" value="high" /><param name="src"';
 				html += 'value="{0}" /><param name="pluginspage" value="http://www.macromedia.com/go/getflashplayer" />';
 				html += '<param name="wmode" value="transparent" /><embed width="{1}" height="{2}" type="application/x-shockwave-flash"';
 				html += 'src="{0}" quality="high" pluginspage="http://www.macromedia.com/go/getflashplayer"';
-				html += 'wmode="transparent" /></object>';*/
-				html = '<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" width="{1}" height="{2}"><param name="movie" value="{0}" /><param name="wmode" value="transparent" /><!--[if !IE]>--><object type="application/x-shockwave-flash" data="{0}" width="{1}" height="{2}"><param name="wmode" value="transparent" /><!--<![endif]--><p>Flash Content Unavailable</p><!--[if !IE]>--></object><!--<![endif]--></object>';			
+				html += 'wmode="transparent" /></object>';
 				html = html.format(ad_media_url.val(), width, height);
 				break;
-			case 'flv':
-				html = '<div id="flvplayer{0}" style="width:{1}px;height:{2}px"></div><script language="JavaScript">flowplayer("flvplayer{0}", "/flowplayer/flowplayer-3.2.16.swf", { clip: { url: "{3}", autoPlay: true, autoBuffering: true, linkUrl: "{4}", linkWindow: "_blank" }, plugins: { controls: null }, buffering: false, onFinish: function() { this.stop(); this.play(); }, onBeforePause: function() { return false; } });</script>";';
-				html = html.format('1', width, height, ad_media_url.val(), ad_link_url.val());
 			default:
 				html = '';
 		}
 		
 		// Add anchor tags
-		if ( ad_link_url.val() != '' ) {
-			if (ext === 'swf') {
-				html += "<a class='flash-banner-link' href='%tracker%{0}' target='_blank' title='{1}'></a>".format(ad_link_url.val().replace('%tracker%', ''), ad_hint.val());
-			}
-			else {
-				html = "<a href='%tracker%{0}' target='_blank' title='{1}'>{2}</a>".format(ad_link_url.val().replace('%tracker%', ''), ad_hint.val(), html);
-			}
-		}
+		if ( ad_link_url.val() != '' ) 
+			html = "<a href='{0}' target='_blank' title='{1}' >{2}</a>".format(ad_link_url.val(), ad_hint.val(), html);
 		
 		// Add audio
 		if ( ad_audio_url.val() != '' ) 
@@ -600,94 +439,27 @@ jQuery(document).ready(function() {
 
 		return html;
 	}
-
-	function show_preview(html) {
-		var width, height, dims;
-
-		if (html == '') {
-			ad_preview.html('No content to preview.');
-			return false;
-		}
-
-		width = get_media_width(html);
-		width = (width != '') ? "width={0}".format(width + 10) : '';
-		height = get_media_height(html);
-		height = (height != '') ? "height={0}".format(height + 10) : '';
-		dims = ( width != '' ? '&' . width : '' ) + ( height != '' ? '&' + height : '' );  
-		
-		ad_preview.html(html);
-		tb_show('Preview', '#TB_inline?inlineId=ad-preview&modal=false' + dims, null);
-		return true;	
-	}
 	
 	// Generates a preview of the current ad content
 	function preview_ad_content() {
-		if ((ad_mode.val() === 'mode_basic') && validate_ad_media_url()) {
-			administer_build_code(show_preview);
+		var	html = '', ext, width, height;
+		width = ad_size.val().split('x');
+		height = jQuery.trim(width[1]);
+		width = jQuery.trim(width[0]);
+		if (ad_mode.val() == 'mode_basic') {
+			if (validate_ad_media_url()) {
+				html = get_html_from_basic()
+			}
 		}
 		else {
-			show_preview(ad_html.val());
+			html = ad_html.val();
 		}
-
+		
+		if (html == '') {
+			alert('There is no advertisement content to preview.');
+			return false;
+		}
+		ad_preview.html(html);
 		return true;
 	}
-});
-
-
-// Ad-minister Positions Page Functions
-jQuery(document).ready(function() {
-	jQuery('input[type=checkbox]#rotate').change(function() {
-		var checked = jQuery(this).attr('checked');
-        if (checked) {
-			if (!jQuery('input#rotate_time').val()) {
-				jQuery('input#rotate_time').val(7);
-			}
-			jQuery('tr#positions_edit_rotate_time').show();
-		}
-		else {
-			jQuery('tr#positions_edit_rotate_time').hide();
-		}
-	});	
-
-	jQuery('#select_all_template').click(function() {
-		var checked = jQuery(this).is(':checked');
-		jQuery('#template-positions input[type=checkbox][name="selected_template_positions[]"]').each(function() {
-			if (checked) {
-				jQuery(this).attr('checked', checked);			
-			}
-			else {
-				jQuery(this).removeAttr('checked');
-			}
-		});
-	});
-});
-
-
-
-// Ad-minister Content Page Functions
-jQuery(document).ready(function() {
-	var apply_button = jQuery('#apply_button');
-	var bulk_actions = jQuery('#bulk_actions');
-	var select_all = jQuery('#select_all');
-	
-	apply_button.click(function(e) {
-		if (bulk_actions.val() == '') {	
-			e.preventDefault();
-		}
-		if ((bulk_actions.val() == 'delete') && !confirm('Are you sure you want to delete this content?')) {
-			e.preventDefault();
-		}
-	});
-	
-	select_all.click(function() {
-		var checked = select_all.is(':checked');
-		jQuery('input[type=checkbox]').each(function() {
-			if (checked) {
-				jQuery(this).attr('checked', checked);			
-			}
-			else {
-				jQuery(this).removeAttr('checked');
-			}
-		});
-	});
 });

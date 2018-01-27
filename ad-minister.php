@@ -43,19 +43,18 @@ add_action('init', 'administer_translate');
 function administer_menu() {
 	$page_title = 'Ad-minister';
 	$menu_title = 'Ad-minister';
-	$capability = !($capability = get_option('administer_user_level')) ? 'manage_options' : $capability;
+	$capability = 'manage_options';
 	$menu_slug = 'ad-minister';
 	$function = 'administer_main';
 	$icon_url = plugins_url( 'images/money_icon.png', __FILE__ );
-	//$icon_url = plugins_url( basename( __DIR__ ) . '/images/money_icon.png' );
 	$position = '';
 	add_menu_page( $page_title, $menu_title, $capability, $menu_slug, $function, $icon_url );
 	
-	add_submenu_page( 'ad-minister', 'Ad-minister - All Banners', 'All Banners', $capability, 'ad-minister' );
-	add_submenu_page( 'ad-minister', 'Ad-minister - New Banner', 'New Banner', $capability, 'ad-minister-banner', 'administer_page_banner' );
-	add_submenu_page( 'ad-minister', 'Ad-minister - Positions/Widgets', 'Positions', $capability, 'ad-minister-positions', 'administer_page_positions' );
-	add_submenu_page( 'ad-minister', 'Ad-minister - Settings', 'Settings', $capability, 'ad-minister-settings', 'administer_page_settings' );
-	add_submenu_page( 'ad-minister', 'Ad-minister - Help', 'Help', $capability, 'ad-minister-help', 'administer_page_help' );
+	add_submenu_page( $menu_slug, 'Ad-minister - All Banners', 'All Banners', $capability, 'ad-minister' );
+	add_submenu_page( $menu_slug, 'Ad-minister - New Banner', 'New Banner', $capability, 'ad-minister-banner', 'administer_page_banner' );
+	add_submenu_page( $menu_slug, 'Ad-minister - Positions/Widgets', 'Positions', $capability, 'ad-minister-positions', 'administer_page_positions' );
+	add_submenu_page( $menu_slug, 'Ad-minister - Settings', 'Settings', $capability, 'ad-minister-settings', 'administer_page_settings' );
+	add_submenu_page( $menu_slug, 'Ad-minister - Help', 'Help', $capability, 'ad-minister-help', 'administer_page_help' );
 }
 add_action( 'admin_menu', 'administer_menu' );
 
@@ -90,22 +89,28 @@ function administer_enqueue_scripts ( $hook ) {
 	global $pagenow;
 	
 	// Auto install
-	if (!get_option('administer_post_id') || !administer_ok_to_go()) {
+	if ( ! ( get_option( 'administer_post_id' ) && administer_ok_to_go() ) ) {
 		$_POST = array();
 		
 		// Does it exist already?
 		$sql = "select count(*) from $wpdb->posts where post_type='administer'";
-		$nbr = $wpdb->get_var($sql) + 1;
+		$nbr = $wpdb->get_var( $sql ) + 1;
 
 		// Create a new one		
 		$_POST['post_title'] = 'Ad-minister Data Holder ' . $nbr;
 		$_POST['post_type'] = 'administer';
 		$_POST['content'] = 'This post holds your Ad-minister data';
 		$id = wp_write_post();
-		update_option('administer_post_id', $id);
+		update_option( 'administer_post_id', $id );
 	}
-				
-	$page = $_GET['page'];
+
+	// Enqueue Ad-minster styles (includes styles for Dashboard widget)
+	$script = 'css/ad-minister.css';
+	$version = filemtime( plugin_dir_path( __FILE__ ) . $script );
+	wp_enqueue_style( 'ad-minister', plugins_url( $script, __FILE__ ), null, $version );	
+	wp_enqueue_style( 'ad-minister' );
+	
+	$page = isset( $_GET['page'] ) ? $_GET['page'] : '';
 	if ( strpos( $page, 'ad-minister' ) !== 0 ) return false;
 	
 	// If we're not installed, go to the settings page for the setup.
@@ -125,20 +130,13 @@ function administer_enqueue_scripts ( $hook ) {
 	
 	$_GET['page'] = $page;
 
-	// Enqueue Ad-minster styles
-	$script = 'css/ad-minister.css';
-	$version = filemtime( plugin_dir_path( __FILE__ ) . $script );
-	wp_enqueue_style( 'ad-minister', plugins_url( $script, __FILE__ ), null, $version );	
-	wp_enqueue_style( 'ad-minister' );
-	
 	// Enqueue common functions javascript
-	$script_url = plugins_url( 'js/ad-minister.js', __FILE__ );
-	$version = filemtime( plugin_dir_path( __FILE__ ) . 'js/ad-minister.js' );
-	wp_enqueue_script( 'ad-minister', $script_url, null, $version );
+	$script = 'js/ad-minister.min.js'; 
+	$version = filemtime( plugin_dir_path( __FILE__ ) . $script );
+	wp_enqueue_script( 'ad-minister', plugins_url( $script, __FILE__ ), array( 'jquery' ), $version );
 	
 	// Enqueue Flash Players
 	$script_url = plugins_url( 'script/flowplayer/flowplayer-3.2.12.min.js', __FILE__ );
-	//$script_url = plugins_url( basename( __DIR__ ) . '/flowplayer/flowplayer-3.2.12.min.js' );
 	wp_enqueue_script( 'flowplayer', $script_url );
 	wp_enqueue_script( 'swfobject' );
 	
@@ -162,32 +160,15 @@ function administer_enqueue_scripts ( $hook ) {
 				
 		// Enqueue script to use media uploader and provide form validation
 		wp_enqueue_media();
-		$version = filemtime( plugin_dir_path( __FILE__ ) . 'js/ad-minister-banner.js' );
-		wp_enqueue_script( 'ad-minister-banner', plugins_url( 'js/ad-minister-banner.js', __FILE__ ), array( 'jquery', 'jquery-multiselect', 'swfobject' ), $version );
 	}
-	else if ( $page == 'ad-minister-positions' ) {
-		$version = filemtime( plugin_dir_path( __FILE__ ) . 'js/ad-minister-positions.js' );
-		wp_enqueue_script( 'ad-minister-positions', plugins_url( 'js/ad-minister-positions.js', __FILE__ ), array('jquery'), $version );
-	}
-	else if ( $page == 'ad-minister' ) {
-		$version = filemtime( plugin_dir_path( __FILE__ ) . 'js/ad-minister-content.js' );
-		wp_enqueue_script( 'ad-minister-content', plugins_url( 'js/ad-minister-content.js', __FILE__  ), array( 'jquery' ), $version );
-	}	
 }
 add_action( 'admin_enqueue_scripts', 'administer_enqueue_scripts', 20 ); 
 
 function administer_wp_enqueue_scripts() {	
-	wp_register_script( 'administer-lazy-load', plugins_url( 'js/ad-minister-lazy-load.js', __FILE__ ), array( 'jquery' ), '1.0.6' );
-	wp_enqueue_script( 'administer-lazy-load' );	
-	
-	//wp_register_script( 'tcycle', 'http://malsup.github.com/jquery.tcycle.js', array( 'jquery' ) );
-	$script = 'js/jquery.tcycle.js';
+	$script = 'js/ad-minister-functions.min.js';
 	$version = filemtime( plugin_dir_path( __FILE__ ) . $script );
-	wp_register_script( 'tcycle', plugins_url( $script, __FILE__ ), array( 'jquery', 'administer-lazy-load' ), $version );
-	wp_enqueue_script( 'tcycle' );	
-	
-	// Enqueue Swiffy run-time
-	//wp_enqueue_script( 'swiffy', 'https://www.gstatic.com/swiffy/v7.2.0/runtime.js' );
+	wp_register_script( 'administer-functions', plugins_url( $script, __FILE__ ), array( 'jquery' ), $version );
+	wp_enqueue_script( 'administer-functions' );
 }
 add_action('wp_enqueue_scripts', 'administer_wp_enqueue_scripts');
 
@@ -201,7 +182,7 @@ add_action('wp_enqueue_scripts', 'administer_wp_enqueue_styles');
 
 function administer_wp_head() {
     // Hide administer-lazy-load content if javascript is unsupported
-	echo '<noscript><script type="text/css"> .administer-lazy-load { display: none; } </script></noscript>';
+	echo '<noscript><style> .administer-lazy-load { display: none; } </style></noscript>';
 }
 add_action( 'wp_head', 'administer_wp_head' );
 
@@ -228,3 +209,11 @@ function administer_start_session() {
 }
 administer_start_session();
 //add_action('init', 'administer_session', 1);
+
+function administer_register_type() {
+	$args = array(
+		'public' => false
+	);
+	register_post_type( 'administer', $args );
+}
+add_action( 'init', 'administer_register_type', 1 );

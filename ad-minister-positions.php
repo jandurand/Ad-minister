@@ -7,18 +7,18 @@ function administer_position_template ($position = array(), $nbr = 0) {
 	// Set up css formatting
 	$class =  ($nbr % 2) ? '' : 'alternate';
 	$html = '<tr class="%class%">';
-	$html .= ( $position['type'] == 'template' ) ? "<td class='staddt_selected'><input style='margin-left: 8px;' type='checkbox' name='selected_template_positions[]' value='{$key}' /></td>" : '';
-	$html .= '<td style="white-space: nowrap;">' . $key . '</td>';
-	$html .= '<td>' . $desc . '</td>';
-	//$html .= '<td>' . htmlentities($position['before']) . ' ' . htmlentities($position['after']) . '</td>';
-	$html .= '<td>' . $position['class'] . '</td>';
-	$html .= '<td>' . $rotating . '</td>';
+	$html .= ( $position['type'] == 'template' ) ? "<td class='staddt_selected'><input style='margin-left: 8px;' type='checkbox' name='selected_template_positions[]' value='" . esc_attr( $key ) . "' /></td>" : '';
+	$html .= '<td style="white-space: nowrap;">' . esc_html( $key ) . '</td>';
+	$html .= '<td>' . esc_html( $desc ) . '</td>';
+	//$html .= '<td>' . esc_html($position['before']) . ' ' . esc_html($position['after']) . '</td>';
+	$html .= '<td>' . esc_html( $position['class'] ) . '</td>';
+	$html .= '<td>' . esc_html( $rotating ) . '</td>';
 	$html .= '<td><a href="%url_edit%">' . __('Edit', 'ad-minister') . '</a> | <a href="%url_remove%">' . __('Remove', 'ad-minister') . '</a></td>';
 	$html .= '</tr>';
 
 	// Inject template values
-	$html = str_replace('%url_edit%', administer_get_page_url( 'positions' ) . '&key=' . urlencode($key) . '&action=edit', $html);
-	$html = str_replace('%url_remove%', administer_get_page_url( 'positions' ) . '&key=' . urlencode($key) . '&action=delete', $html);
+	$html = str_replace('%url_edit%', administer_get_page_url( 'positions' ) . '&key=' . urlencode( $key ) . '&action=edit', $html);
+	$html = str_replace('%url_remove%', administer_get_page_url( 'positions' ) . '&key=' . urlencode( $key ) . '&action=delete', $html);
 	$html = str_replace('%class%', $class, $html);
 
 	echo $html;	
@@ -30,15 +30,15 @@ function administer_position_template ($position = array(), $nbr = 0) {
 
 	<?php
 	$positions = administer_get_positions();
-	$rotate_time_default = 7;
+	$rotate_time_default = administer_get_default_rotate_time();
 	
 	/*
 	**   SAVE THE POSITION
 	*/
-	if ($_POST['save']) {			
-		if ($name = $_POST['position']) {
+	if ( isset( $_POST['save'] ) ) {			
+		if ( $name = administer_get_post_var( 'position' ) ) {
 			$ok = true;
-			if ($_POST['edit_position'] != $name) {
+			if ( administer_get_post_var( 'edit_position' ) != $name ) {
 				if (array_key_exists($name, $positions)) {
 					echo '<div id="message" class="updated fade"><p><strong>' . __('That position name already exists!') . '</strong></p></div>';
 					$ok = false;
@@ -46,12 +46,12 @@ function administer_position_template ($position = array(), $nbr = 0) {
 			} 
 			if ($ok) {
 				$positions[$name]['position'] = stripslashes($name); 
-				$positions[$name]['description'] = stripslashes($_POST['description']);
+				$positions[$name]['description'] = stripslashes( administer_get_post_var( 'description' ) );
 				/*$positions[$name]['before'] = stripslashes($_POST['before']);
 				$positions[$name]['after'] = stripslashes($_POST['after']);*/
-				$positions[$name]['class'] = stripslashes( $_POST['class'] );
-				$positions[$name]['rotate'] = stripslashes($_POST['rotate']) ? 'true' : 'false';
-				$positions[$name]['rotate_time'] = stripslashes($_POST['rotate_time']) ? stripslashes($_POST['rotate_time']) : $rotate_time_default;
+				$positions[$name]['class'] = stripslashes( administer_get_post_var( 'class' ) );
+				$positions[$name]['rotate'] = stripslashes( administer_get_post_var( 'rotate' ) ) ? 'true' : 'false';
+				$positions[$name]['rotate_time'] = ( administer_get_post_var( 'rotate_time' ) ) ? stripslashes( administer_get_post_var( 'rotate_time' ) ) : $rotate_time_default;
 				if ( ! $positions[$name]['type'] ) $positions[$name]['type'] = 'widget';
 				administer_update_positions( $positions );
 				$_GET['key'] = $positions[$name]['position'];
@@ -60,8 +60,8 @@ function administer_position_template ($position = array(), $nbr = 0) {
 		}
 	}
 	
-	if ($_POST['action'] == 'confirm_delete') {
-		if ($key = $_POST['key']) {
+	if ( administer_get_post_var( 'action' ) == 'confirm_delete' ) {
+		if ( $key = administer_get_post_var( 'key' ) ) {
 			if (array_key_exists($key, $positions)) {
 
 				// Remove the position
@@ -104,19 +104,42 @@ function administer_position_template ($position = array(), $nbr = 0) {
 	$positions_t = array();
 	$positions_w = array();
 	if (is_array($positions)) {
-		foreach ($positions as $position) {
-			if ($position['type'] == 'widget') $positions_w[$position['position']] = $position;
-			if ($position['type'] == 'template') $positions_t[$position['position']] = $position;
+		$positions_modified = false;
+		foreach ($positions as $key => $position) {
+			if ($position['position'] !== $key) {
+				$position['position'] = $key;
+				$positions[$key] = $position;
+				$positions_modified = true;
+			}
+			
+			if (!isset($position['rotate'])) {
+				$position['rotate'] = 'true';
+				$position['rotate_time'] = $rotate_time_default;
+				$positions[$key] = $position;
+				$positions_modified = true;
+			}
+					
+			if (empty($position['type'])) {
+				$position['type'] = 'widget';
+				$positions_modified = true;
+			}
+			
+			if ($position['type'] == 'widget') 
+				$positions_w[$position['position']] = $position;
+			else if ($position['type'] == 'template') 
+				$positions_t[$position['position']] = $position;
 		}
+		if ( $positions_modified )
+			administer_update_positions( $positions );
 	}
 	ksort($positions_t);
 	ksort($positions_w);
 	?>
 
-	<p><?php if ($_GET['action'] != 'delete') _e('Positions are just that, \'positions\' at which you want content to appear. A position can be defined within a template, such as in a header for banner-ads, or a position can be a widget, which can be dragged onto a sidebar. Each position may have an optional description and html code which wraps the content within a position. For example, this may be <em>&lt;div class=&quot;ads&quot;&gt;</em> before, and <em>&lt;/div&gt;</em> after.', 'ad-minister'); ?></p>
+	<p><?php if ( administer_get_query_var( 'action' ) != 'delete' ) _e('Positions are just that, \'positions\' at which you want content to appear. A position can be defined within a template, such as in a header for banner-ads, or a position can be a widget, which can be dragged onto a sidebar. Each position may have an optional description and html code which wraps the content within a position. For example, this may be <em>&lt;div class=&quot;ads&quot;&gt;</em> before, and <em>&lt;/div&gt;</em> after.', 'ad-minister'); ?></p>
 
 	<?php 
-	if ($_GET['action'] == 'edit') { 
+	if ( administer_get_query_var( 'action' ) == 'edit' ) { 
 		$position = ( $key = $_GET['key'] ) ? $positions[$key] : array();
 		$checked_rotate = ( $position['rotate'] == 'true' ) ? 'checked="checked"' : ''; 
 	?>
@@ -135,7 +158,7 @@ function administer_position_template ($position = array(), $nbr = 0) {
 				<tr id="position_edit_name">
 					<th scope="row" valign="top"><?php _e('Name'); ?></th>
 					<?php $type = ($position['position']) ? 'hidden' : 'text'; ?>
-					<td><?php if ($type == 'hidden') echo $position['position']; ?><input type="<?php echo $type; ?>" name="position" value="<?php echo format_to_edit($position['position']); ?>"></td>	
+					<td><?php if ($type == 'hidden') echo $position['position']; ?><input type="<?php echo $type; ?>" name="position" size="100" value="<?php echo format_to_edit($position['position']); ?>"></td>	
 				</tr>
 				<tr id="position_edit_desc">
 					<th scope="row" valign="top"><?php _e('Description'); ?></th>
@@ -173,7 +196,7 @@ function administer_position_template ($position = array(), $nbr = 0) {
 		
 	<?php 
 	} 
-	else if ($_GET['action'] == 'delete') {
+	else if ( administer_get_query_var( 'action' ) == 'delete' ) {
 		if ( $key = $_GET['key'] ) {
 			$nbr = 0;
 			$content = administer_get_content();
@@ -182,7 +205,7 @@ function administer_position_template ($position = array(), $nbr = 0) {
 			}			
 	?>
 			<div class="narrow">
-				<p><?php _e('You are about to delete position', 'ad-minister'); ?>: <strong><?php echo $key; ?></strong></p>
+				<p><?php _e('You are about to delete position', 'ad-minister'); ?>: <strong><?php echo esc_html( $key ); ?></strong></p>
 
 				<?php if ($nbr) printf(__('There are %s ads currently attached to this position. Deleting this position will make those ads orphans.', 'ad-minister'), $nbr); ?>
 
@@ -205,13 +228,13 @@ function administer_position_template ($position = array(), $nbr = 0) {
 					</table>
 					<?php echo wp_nonce_field(); ?>
 					<input type='hidden' name='action' value='confirm_delete' />
-					<input type='hidden' name='key' value='<?php echo $key; ?>' />
+					<input type='hidden' name='key' value='<?php echo esc_html( $key ); ?>' />
 				</form>
 
 				<table class="form-table" cellpadding="5">
 					<tr class="alt">
 						<th scope="row"><?php _e('Position', 'ad-minister'); ?></th>
-						<td><?php echo $key; ?></td>
+						<td><?php echo esc_html( $key ); ?></td>
 					</tr>
 					<tr>
 						<th scope="row"><?php _e('Description', 'ad-minister'); ?></th>
@@ -219,7 +242,7 @@ function administer_position_template ($position = array(), $nbr = 0) {
 					</tr>
 					<!--<tr>
 						<th scope="row"><?php _e('Wrapper', 'ad-minister'); ?></th>
-						<td><?php echo htmlentities($positions[$key]['before']); ?> <?php echo htmlentities($positions[$key]['after']); ?></td>
+						<td><?php echo esc_html($positions[$key]['before']); ?> <?php echo esc_html($positions[$key]['after']); ?></td>
 					</tr>-->
 					<tr>
 						<th scope="row"><?php _e('Classes', 'ad-minister'); ?></th>
