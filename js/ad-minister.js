@@ -21,6 +21,8 @@ jQuery(document).ready(function() {
 
 // Administer Banner Page Functions
 jQuery(document).ready(function() {
+	if (jQuery('body.ad-minister_page_ad-minister-banner').length == 0) return false;
+	
 	var mode, formfield;
 	
 	// Ad-minister 'Create Content' form controls
@@ -225,33 +227,33 @@ jQuery(document).ready(function() {
 	});
 	 
 	function select_media(options) {
-    if (typeof(options) === 'undefined') return false;
-		if ((typeof(options) !== 'object') && (typeof(options) !== 'function')) return false;
-		
-		if (typeof(options) === 'function') {
-			options = {
-				select: options,
-				title: 'Select Media',
-				button_text: 'Select',
-				media_type: '' // Show All
-			}
-		} 
-		if (typeof(options.title) === 'undefined') options.title = 'Select Media';
-		if (typeof(options.button_text) === 'undefined') options.button_text = 'Select';
-		if (typeof(options.media_type) === 'undefined') options.media_type = '';
-		
-		var custom_uploader = wp.media({
-        frame: 'select',
-				title: options.title,
-        button: { text: options.button_text },
-				library: { type: options.media_type },
-        multiple: false  // Set this to true to allow multiple files to be selected
-    })
-    .on('select', function() {
-        var attachment = custom_uploader.state().get('selection').first().toJSON();
-        options.select(attachment.url);
-    })
-    .open();		
+		if (typeof(options) === 'undefined') return false;
+			if ((typeof(options) !== 'object') && (typeof(options) !== 'function')) return false;
+			
+			if (typeof(options) === 'function') {
+				options = {
+					select: options,
+					title: 'Select Media',
+					button_text: 'Select',
+					media_type: '' // Show All
+				}
+			} 
+			if (typeof(options.title) === 'undefined') options.title = 'Select Media';
+			if (typeof(options.button_text) === 'undefined') options.button_text = 'Select';
+			if (typeof(options.media_type) === 'undefined') options.media_type = '';
+			
+			var custom_uploader = wp.media({
+			frame: 'select',
+					title: options.title,
+			button: { text: options.button_text },
+					library: { type: options.media_type },
+			multiple: false  // Set this to true to allow multiple files to be selected
+		})
+		.on('select', function() {
+			var attachment = custom_uploader.state().get('selection').first().toJSON();
+			options.select(attachment.url);
+		})
+		.open();		
 	}
 
 	jQuery('#ad_media_button').click(function() {
@@ -298,37 +300,37 @@ jQuery(document).ready(function() {
 		
 	// Ad-minister Mode Tabs
 	ad_mode_tabs.each(function(){
-    // For each set of tabs, we want to keep track of
-    // which tab is active and it's associated content
-    var $active, $content, $links = jQuery(this).find('a');
+		// For each set of tabs, we want to keep track of
+		// which tab is active and it's associated content
+		var $active, $content, $links = jQuery(this).find('a');
 
-	  // If no match is found, use the first link as the initial active tab.
+		// If no match is found, use the first link as the initial active tab.
 		$active = jQuery($links.filter('[id="' + ad_mode.val() + '"]')[0] || $links[0]);	
 		$active.addClass('tabs-current');
-	  $content = jQuery('.' + $active.attr('id'));
+		$content = jQuery('.' + $active.attr('id'));
 		ad_mode.val($active.attr('id'));
 		
-    // Hide the remaining content
-    $links.not($active).each(function () {
-        jQuery('.' + jQuery(this).attr('id')).hide();
-    });
+		// Hide the remaining content
+		$links.not($active).each(function () {
+			jQuery('.' + jQuery(this).attr('id')).hide();
+		});
 
-    // Bind the click event handler
-    jQuery(this).on('click', 'a', function(e){
-		
-			// Make the old tab inactive
-	    $active.removeClass('tabs-current');
-	    $content.hide();
-
-	    // Update the variables with the new link and content
-	    $active = jQuery(this);
-	    $content = jQuery('.' + $active.attr('id'));
-			ad_mode.val($active.attr('id'));
+		// Bind the click event handler
+		jQuery(this).on('click', 'a', function(e){
 			
-	    // Make the tab active
-	    $active.addClass('tabs-current');
-	    $content.show();
+			// Make the old tab inactive
+			$active.removeClass('tabs-current');
+			$content.hide();
+
+			// Update the variables with the new link and content
+			$active = jQuery(this);
+			$content = jQuery('.' + $active.attr('id'));
+				ad_mode.val($active.attr('id'));
 				
+			// Make the tab active
+			$active.addClass('tabs-current');
+			$content.show();
+					
 			// Take certain actions depending on the mode selected
 			/*if (ad_modes_synced.attr('checked')) {
 				switch (ad_mode.val()) {
@@ -343,9 +345,9 @@ jQuery(document).ready(function() {
 						break;
 				}
 			}*/
-				
-	    // Prevent the anchor's default click action
-	    e.preventDefault();
+					
+			// Prevent the anchor's default click action
+			e.preventDefault();
 		});
 	});
 	
@@ -537,14 +539,15 @@ jQuery(document).ready(function() {
 			ad_audio_url : ad_audio_url.val(),
 			ad_hint : ad_hint.val()
 		};
+		
 		jQuery.post(
-      ajaxurl,
+			ajaxurl,
 			data,
-      function(response) {
-        onSuccess(response);  
+			function(response) {
+				onSuccess(response);  
 				return response;
-      }
-    );	
+			}
+		);	
 	}
 	
 	// Generates and returns the html ad from the basic mode field values
@@ -567,13 +570,6 @@ jQuery(document).ready(function() {
 				html = "<img src='{0}' width='{1}' height='{2}' title='{3}' />".format(ad_media_url.val(), width, height, ad_hint.val());
 				break;
 			case 'swf':
-				/*html = '<object width="{1}" height="{2}" classid="clsid:d27cdb6e-ae6d-11cf-96b8-444553540000"';
-				html += 'codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0">';
-				html += '<param name="quality" value="high" /><param name="src"';
-				html += 'value="{0}" /><param name="pluginspage" value="http://www.macromedia.com/go/getflashplayer" />';
-				html += '<param name="wmode" value="transparent" /><embed width="{1}" height="{2}" type="application/x-shockwave-flash"';
-				html += 'src="{0}" quality="high" pluginspage="http://www.macromedia.com/go/getflashplayer"';
-				html += 'wmode="transparent" /></object>';*/
 				html = '<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" width="{1}" height="{2}"><param name="movie" value="{0}" /><param name="wmode" value="transparent" /><!--[if !IE]>--><object type="application/x-shockwave-flash" data="{0}" width="{1}" height="{2}"><param name="wmode" value="transparent" /><!--<![endif]--><p>Flash Content Unavailable</p><!--[if !IE]>--></object><!--<![endif]--></object>';			
 				html = html.format(ad_media_url.val(), width, height);
 				break;
@@ -636,6 +632,8 @@ jQuery(document).ready(function() {
 
 // Ad-minister Positions Page Functions
 jQuery(document).ready(function() {
+	if (jQuery('body.ad-minister_page_ad-minister-positions').length == 0) return false;
+	
 	jQuery('input[type=checkbox]#rotate').change(function() {
 		var checked = jQuery(this).attr('checked');
         if (checked) {
@@ -666,6 +664,8 @@ jQuery(document).ready(function() {
 
 // Ad-minister Content Page Functions
 jQuery(document).ready(function() {
+	if (jQuery('body.ad-minister_page_ad-minister-content').length == 0) return false;
+	
 	var apply_button = jQuery('#apply_button');
 	var bulk_actions = jQuery('#bulk_actions');
 	var select_all = jQuery('#select_all');

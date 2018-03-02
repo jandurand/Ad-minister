@@ -637,7 +637,8 @@ function administer_resize_image( $args ) {
 	
 	// Use timthumb script
 	if ( $width & $height ) {
-		$src = '/thumbs/timthumb.php?' . ( $quality ? 'q=' . $quality : '' ) . ( $width ? '&amp;w=' . $width : '' ) . ( $height ? '&amp;h=' . $height : '' ) . '&amp;zc=0&amp;src=' . $src;	
+		$script_url = plugins_url( 'script/timthumb/timthumb.php', __FILE__ );
+		$src = $script_url . '?' . ( $quality ? 'q=' . $quality : '' ) . ( $width ? '&amp;w=' . $width : '' ) . ( $height ? '&amp;h=' . $height : '' ) . '&amp;zc=0&amp;src=' . $src;	
 	}
 	
 	return $src;
@@ -1380,7 +1381,8 @@ function administer_do_redirect() {
 
 			// Redirect
 			header( "HTTP/1.1 302 Temporary Redirect" );
-			header( "Location: " . $link );			
+			header( "Location: " . $link );
+			header( "X-Robots-Tag: noindex, nofollow" );
 			// I'm outta here!
 			exit(1);
 		}

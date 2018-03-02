@@ -86,7 +86,6 @@ add_action('administer_stats', 'administer_template_stats');
 
 function administer_enqueue_scripts ( $hook ) {
 	global $wpdb;
-	global $pagenow;
 	
 	// Auto install
 	if ( ! ( get_option( 'administer_post_id' ) && administer_ok_to_go() ) ) {
@@ -129,38 +128,33 @@ function administer_enqueue_scripts ( $hook ) {
 	}
 	
 	$_GET['page'] = $page;
-
-	// Enqueue common functions javascript
-	$script = 'js/ad-minister.min.js'; 
-	$version = filemtime( plugin_dir_path( __FILE__ ) . $script );
-	wp_enqueue_script( 'ad-minister', plugins_url( $script, __FILE__ ), array( 'jquery' ), $version );
 	
 	// Enqueue Flash Players
 	$script_url = plugins_url( 'script/flowplayer/flowplayer-3.2.12.min.js', __FILE__ );
 	wp_enqueue_script( 'flowplayer', $script_url );
 	wp_enqueue_script( 'swfobject' );
 	
-	if ( $page == 'ad-minister-banner' ) {
-		wp_enqueue_script('page');
-		wp_enqueue_script('editor');
-		wp_enqueue_script('thickbox');
-		wp_enqueue_style('thickbox');
-		wp_enqueue_script('media-upload');
-		wp_enqueue_script('controls');
+	if ( $page == 'ad-minister-banner' ) {	
+		// Enqueue jquery data picker
 		wp_enqueue_script('jquery-ui-datepicker');
 		
 		// Enqueue style sheet for date picker fields
 		wp_enqueue_style( 'ui-lightness', plugins_url( 'css/ui-lightness/jquery-ui-1.8.24.custom.css', __FILE__ ) );
 		
 		// Enqueue jquery multiselect plugin
-		wp_enqueue_script( 'jquery-multiselect', plugins_url('js/jquery.multiselect.js', __FILE__), array( 'jquery', 'jquery-ui-widget' ) );
 		wp_enqueue_style( 'jquery-multiselect', plugins_url('css/jquery.multiselect.css', __FILE__) );
-		wp_enqueue_script( 'jquery-multiselect-filter', plugins_url('js/jquery.multiselect.filter.js', __FILE__), array( 'jquery-multiselect' ) );
+		wp_enqueue_script( 'jquery-multiselect', plugins_url('js/jquery.multiselect.js', __FILE__), array( 'jquery', 'jquery-ui-widget' ) );
 		wp_enqueue_style( 'jquery-multiselect-filter', plugins_url('css/jquery.multiselect.filter.css', __FILE__) );
+		wp_enqueue_script( 'jquery-multiselect-filter', plugins_url('js/jquery.multiselect.filter.js', __FILE__), array( 'jquery-multiselect' ) );
 				
 		// Enqueue script to use media uploader and provide form validation
 		wp_enqueue_media();
 	}
+	
+	// Enqueue common functions javascript
+	$script = 'js/ad-minister.min.js';
+	$version = filemtime( plugin_dir_path( __FILE__ ) . $script );
+	wp_enqueue_script( 'ad-minister', plugins_url( $script, __FILE__ ), array( 'jquery' ), $version, true );
 }
 add_action( 'admin_enqueue_scripts', 'administer_enqueue_scripts', 20 ); 
 
