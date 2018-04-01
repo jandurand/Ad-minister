@@ -666,7 +666,7 @@ function administer_build_ad_link_code( $args ) {
 	if ( ! $href ) 
 		return $content;
 
-	$link_url_id = ( $id ? "id='adlink-{$id}'" : "" );
+	$link_url_id = ( $id ? "id='administer-adlink-{$id}'" : "" );
 	
 	if ( $hint ) {
 		$link_url_title = "title='{$hint}'";
@@ -1144,7 +1144,7 @@ if ( !function_exists( 'administer_get_display_code' ) ) {
 				// Add default ad wrapping
 				$class = isset( $position['class'] ) ? $position['class'] : '';
 				$class .= ( $key === 0 ) ? ' first-ad' : '';
-				$default_wrapper_before = "<div id='ad-{$ad['id']}' class='administer-ad'>";
+				$default_wrapper_before = "<div id='administer-ad-{$ad['id']}' class='administer-ad'>";
 				$default_wrapper_after = "</div>";
 				$code = $default_wrapper_before . $code . $default_wrapper_after;
 				$code_blocks[] = $code;

@@ -664,8 +664,6 @@ jQuery(document).ready(function() {
 
 // Ad-minister Content Page Functions
 jQuery(document).ready(function() {
-	if (jQuery('body.ad-minister_page_ad-minister-content').length == 0) return false;
-	
 	var apply_button = jQuery('#apply_button');
 	var bulk_actions = jQuery('#bulk_actions');
 	var select_all = jQuery('#select_all');
@@ -680,7 +678,7 @@ jQuery(document).ready(function() {
 	});
 	
 	select_all.click(function() {
-		var checked = select_all.is(':checked');
+		var checked = select_all.prop('checked');
 		jQuery('input[type=checkbox]').each(function() {
 			if (checked) {
 				jQuery(this).attr('checked', checked);			
