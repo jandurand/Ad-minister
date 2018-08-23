@@ -902,7 +902,7 @@ function administer_build_ad_mp4_code( $args ) {
 	$codebase = 'http://www.apple.com/qtactivex/qtplugin.cab';
 	$pluginspage = 'http://www.apple.com/quicktime/download';
 	$html =
-	"<video id='{$tag_id}' width='{$width}' height='{$height}' autoplay loop mute preload='none'>
+	"<video id='{$tag_id}' width='{$width}' height='{$height}' autoplay loop muted preload='none'>
 		<!-- MP4 must be first for iPad! -->
 		<source src='{$src}' type='video/mp4' /><!-- WebKit video    -->
 		<!-- fallback to Flash: -->
@@ -1669,13 +1669,13 @@ function administer_reset_stats( $id = NULL ) {
 function administer_reset_impressions( $id ) {
 	$stats = administer_get_stats();
 	unset( $stats[$id]['i'] );
-	administer_update_stats( $stats );
+	administer_set_stats( $stats );
 }
 
 function administer_reset_clicks( $id ) {
 	$stats = administer_get_stats();
 	unset( $stats[$id]['c'] );
-	administer_update_stats( $stats );
+	administer_set_stats( $stats );
 }
 
 function administer_get_impressions( $id ) {
