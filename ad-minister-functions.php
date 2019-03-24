@@ -424,7 +424,7 @@ function administer_load_widgets() {
 */
 class AdministerWidget extends WP_Widget {
 
-	function AdministerWidget() {
+	function __construct() {
 		//Constructor
 		//parent::WP_Widget(false, $name = 'Ad-minister', array('description' => 'Widget For Ad-minister Plugin.'));
 		parent::__construct( false, $name = 'Ad-minister', array( 'description' => 'Widget For Ad-minister Plugin.' ) );
@@ -520,7 +520,13 @@ function administer_popuplate_widget_controls () { }
 ***   display the content of the position.
 **/
 function administer_template_action ( $args ) {
-	if ( ! administer_get_post_id() ) return 0;
+	$banner = administer_get_banner( $args );
+	if ( $banner )
+		echo $banner;
+}
+
+function administer_get_banner( $args ) {
+	if ( ! administer_get_post_id() ) return false;
 	
 	// It's OK only to pass the name of the position to be shown...
 	$args = is_array( $args ) ? $args : array( 'position' => $args );
@@ -573,7 +579,7 @@ function administer_template_action ( $args ) {
 		administer_update_positions( $positions );
 	}
 
-	echo administer_display_position( $args['position'] );
+	return administer_display_position( $args['position'] );
 }
 
 /*
@@ -1248,8 +1254,8 @@ function administer_get_visible_ads( $position ) {
 */
 function administer_display_position( $position ) {
 	
-	if ( ! $position ) return;
-	if ( ! ( $positions = administer_get_positions() ) ) return;	
+	if ( ! $position ) return false;
+	if ( ! ( $positions = administer_get_positions() ) ) return false;	
 	
 	// Get visible ads in this ad position
 	if ( ! ( $ads = administer_get_visible_ads( $position ) ) ) return false;
