@@ -128,12 +128,11 @@
 	}
 	
 	$(document).ready(function() {
-		$w.on({'scroll': loadVisibleImages});
-		$w.on({'resize': loadVisibleImages});
-		$w.on({'touchmove': loadVisibleImages});
+		loadVisibleImages();
+		$w.on({'load scroll resize touchmove': loadVisibleImages});
 	});
 	
-	$w.on({'load': loadVisibleImages});
+	
 })(jQuery);
 
 function administerLazyLoad() {

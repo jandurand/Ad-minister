@@ -75,7 +75,7 @@ function administer_position_select ( $ad_positions = array() ) {
 	sort($position_keys);	
 	foreach ($position_keys as $key) {
 		$selected = ( in_array( $key, $ad_positions ) ) ? ' selected="selected"' : '';
-		$description = ($positions[$key]['description']) ? ' (' . $positions[$key]['description'] . ')' : '';
+		$description =  ( isset( $positions[$key]['description'] ) && ( $positions[$key]['description'] ) ) ? ' (' . $positions[$key]['description'] . ')' : '';
 		$html .= '<option value="' . $positions[$key]['position'] . '"' . $selected .'> ' . $positions[$key]['position'] . $description . '</option>';
 	}
 	$html .= '</select>';
@@ -694,7 +694,7 @@ function administer_build_ad_link_code( $args ) {
 		$onclick = "onclick=\"{$onclick}\"";
 	}
 	
-	$code = "<a {$link_url_id} class='{$class}' {$link_url_title} {$link_url_alt} href='{$href}' {$onclick} {$onload} target='_blank' rel='nofollow'>{$content}</a>";
+	$code = "<a {$link_url_id} class='{$class}' {$link_url_title} {$link_url_alt} href='{$href}' {$onclick} {$onload} target='_blank' rel='nofollow, noindex'>{$content}</a>";
 	
 	return $code;
 }

@@ -143,9 +143,9 @@ function administer_enqueue_scripts ( $hook ) {
 		
 		// Enqueue jquery multiselect plugin
 		wp_enqueue_style( 'jquery-multiselect', plugins_url('css/jquery.multiselect.css', __FILE__) );
-		wp_enqueue_script( 'jquery-multiselect', plugins_url('js/jquery.multiselect.js', __FILE__), array( 'jquery', 'jquery-ui-widget' ) );
+		wp_enqueue_script( 'jquery-multiselect', plugins_url('js/jquery.multiselect.min.js', __FILE__), array( 'jquery', 'jquery-ui-widget' ) );
 		wp_enqueue_style( 'jquery-multiselect-filter', plugins_url('css/jquery.multiselect.filter.css', __FILE__) );
-		wp_enqueue_script( 'jquery-multiselect-filter', plugins_url('js/jquery.multiselect.filter.js', __FILE__), array( 'jquery-multiselect' ) );
+		wp_enqueue_script( 'jquery-multiselect-filter', plugins_url('js/jquery.multiselect.filter.min.js', __FILE__), array( 'jquery-multiselect' ) );
 				
 		// Enqueue script to use media uploader and provide form validation
 		wp_enqueue_media();
