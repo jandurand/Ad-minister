@@ -163,6 +163,10 @@ function administer_wp_enqueue_scripts() {
 	$version = filemtime( plugin_dir_path( __FILE__ ) . $script );
 	wp_register_script( 'administer-functions', plugins_url( $script, __FILE__ ), array( 'jquery' ), $version );
 	wp_enqueue_script( 'administer-functions' );
+	
+	$script = 'js/lazysizes.min.js';
+	$version = '5.1.1';
+	wp_enqueue_script( 'administer-lazysizes', plugins_url( $script, __FILE__ ), null, $version );
 }
 add_action('wp_enqueue_scripts', 'administer_wp_enqueue_scripts');
 
@@ -170,13 +174,12 @@ function administer_wp_enqueue_styles() {
 	$script = 'css/ad-minister.css';
 	$version = filemtime( plugin_dir_path( __FILE__ ) . $script );
 	wp_enqueue_style( 'ad-minister', plugins_url( $script, __FILE__ ), null, $version );	
-	wp_enqueue_style( 'ad-minister' );	
 }
 add_action('wp_enqueue_scripts', 'administer_wp_enqueue_styles');
 
 function administer_wp_head() {
-    // Hide administer-lazy-load content if javascript is unsupported
-	echo '<noscript><style> .administer-lazy-load { display: none; } </style></noscript>';
+    // Hide lazyload content if javascript is unsupported
+	echo '<noscript><style> .ad-minister-ad img.lazyload { display: none; } </style></noscript>';
 }
 add_action( 'wp_head', 'administer_wp_head' );
 

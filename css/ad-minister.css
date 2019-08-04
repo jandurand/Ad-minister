@@ -155,7 +155,7 @@ tr.ad-expiring {background-color: #ffe599;}
 tr.ad-almost-expired {background-color: #f4cccc;}
 
 li a.ad-starting {color: #00AA00}
-li a.ad-expiring {color: #FFCC00;}
+li a.ad-expiring {color: #ffa244;}
 li a.ad-almost-expired {color: #CC0000;}
 
 li a.ad-starting:hover,

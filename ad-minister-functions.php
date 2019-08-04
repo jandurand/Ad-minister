@@ -138,6 +138,7 @@ function administer_ok_to_go() {
 **	shuttle launches.
 */
 function administer_content_age( $schedule ) {
+	$schedule = trim( $schedule, " ," );
 	if ( ! $schedule ) return array( array( 'start' => '0', 'end' => '0' ) );
 
 	$age = array();
@@ -217,6 +218,8 @@ function administer_get_time_left_string( $time_left ) {
 	}
 	else {
 		$time_left /= $day_in_secs;
+		if ( $time_left == 1 )
+			$units = __( 'day', 'ad-minister' );
 	}
 	
 	if ( $time_left < 0 )
@@ -283,6 +286,7 @@ function administer_dashboard_widget () {
 	
 	$stats = administer_get_stats();
 	$url = administer_get_page_url();
+	$banner_url = administer_get_page_url( 'banner' );
 	$events_by_time = array();
 	$li_time_left = '';
 	$li_impressions = '';
@@ -313,14 +317,14 @@ function administer_dashboard_widget () {
 		if ( $time_left && ( $time_left <= $expiring_period )  ) {
 			$time_left_string = administer_get_time_left_string( $time_left );
 			
-			if ( $time_left < 0 ) 
+			if ( $time_left < 0 )
 				$link_class = 'ad-starting';
 			elseif ($time_left <= $almost_expired_period )
 				$link_class = 'ad-almost-expired';
 			else
 				$link_class = 'ad-expiring';
 			
-			$link_url .= $url . '&tab=upload&action=edit&id=' . $con['id'];
+			$link_url .= $banner_url . '&action=edit&id=' . $con['id'];
 			$li_time_left = '<li><a class="' . $link_class . '" href="' . $link_url . '">' . $con['title'] . '</a> - ' . $time_left_string . '</li>';
 			$events_by_time[] = array( 'time_left' => $time_left, 'li_time_left' => $li_time_left );
 		}
@@ -468,9 +472,7 @@ class AdministerWidget extends WP_Widget {
 	
 	// Widget form in backend
 	function form($instance) {
-		global $wpdb; 
-	
-        $position = esc_attr( $instance['position'] );
+		$position = esc_attr( $instance['position'] );
 		if ( !$position ) $position = 'Select a position';
 		$title = strip_tags( $instance['title'] );
        
@@ -724,42 +726,6 @@ function administer_build_ad_img_code( $args ) {
 	$onload = esc_js( $onload );
 	$onclick = esc_js( $onclick );		
 	
-	$img_class = "";
-	$img_src = "src='{$src}'";
-	
-	$code = "";
-	if ( ( ! is_admin() ) && ( get_option( 'administer_lazy_load' ) == 'true' ) ) {
-		/*$code .= "<img class='administer-lazy-load' data-src='{$src}' ";
-		$code .= $hint ? "title='{$hint}' " : "";
-		$code .= $width ? "width='{$width}' " : ""; 
-		$code .= $height ? "height='{$height}' " : ""; 
-		$code .= $onload ? "onload=\"{$onload}\" " : "";		
-		$code .= "/>";
-		*/
-		
-		// In case javascript is unsupported
-		/*$code .= "<noscript>";
-		$code .= "<img src='{$src}' ";
-		$code .= $hint ? "title='{$hint}' " : "";
-		$code .= $width ? "width='{$width}' " : ""; 
-		$code .= $height ? "height='{$height}' " : ""; 
-		$code .= $onload ? "onload=\"{$onload}\" " : "";
-		$code .= "/>";
-		$code .= "</noscript>";*/
-		
-		$img_class = "class='administer-lazy-load'";
-		$img_src = "data-src='{$src}'";
-	}
-	else {
-		/*$code .= "<img src='{$src}' ";
-		$code .= $hint ? "title='{$hint}' " : "";
-		$code .= $width ? "width='{$width}' " : ""; 
-		$code .= $height ? "height='{$height}' " : ""; 
-		$code .= $onload ? "onload=\"{$onload}\" " : "";
-		$code .= "/>";
-		*/
-	}
-	
 	$img_style = "";
 	if ( $width ) {
 		$img_style .= "width: {$width}px; ";
@@ -774,7 +740,14 @@ function administer_build_ad_img_code( $args ) {
 	$img_onload = $onload ? "onload=\"{$onload}\"" : "";
 	$img_hint = $hint ? "title='{$hint}'" : "";
 	
-	$code = "<img {$img_class} {$img_src} {$img_style} {$img_width} {$img_height} {$img_onload} {$img_hint} />";
+	$code = "";
+	if ( ( ! is_admin() ) && ( get_option( 'administer_lazy_load' ) == 'true' ) ) {	
+		$code .= "<noscript><img src='{$src}' {$img_style} {$img_width} {$img_height} {$img_onload} {$img_hint} /></noscript>";
+		$code .= "<img class='lazyload' data-src='{$src}' {$img_style} {$img_width} {$img_height} {$img_onload} {$img_hint} />";
+	}
+	else {
+		$code .= "<img src='{$src}' {$img_style} {$img_width} {$img_height} {$img_onload} {$img_hint} />";
+	}
 		
 	$code = administer_build_ad_link_code( array(
 		'id' => $id,
@@ -908,7 +881,7 @@ function administer_build_ad_mp4_code( $args ) {
 	$codebase = 'http://www.apple.com/qtactivex/qtplugin.cab';
 	$pluginspage = 'http://www.apple.com/quicktime/download';
 	$html =
-	"<video id='{$tag_id}' width='{$width}' height='{$height}' autoplay loop muted preload='none'>
+	"<video id='{$tag_id}' width='{$width}' height='{$height}' autoplay loop muted playsinline preload='none' style='vertical-align: middle;'>
 		<!-- MP4 must be first for iPad! -->
 		<source src='{$src}' type='video/mp4' /><!-- WebKit video    -->
 		<!-- fallback to Flash: -->
@@ -944,15 +917,16 @@ function administer_build_ad_mp4_code( $args ) {
 */
 function administer_build_code( $args ) {
 	$defaults = array(
-	'id' => '',
-	'title' => '',
-	'ad_mode' => 'advance',
-	'ad_media_url' => ''
+		'id' => '',
+		'title' => '',
+		'ad_mode' => 'advance',
+		'ad_media_url' => '',
+		'code' => '',
 	);
 	$args = wp_parse_args( $args, $defaults );
 	extract( $args );
 
-	if ( $ad_mode !== 'mode_basic' ) return '';
+	if ( $ad_mode !== 'mode_basic' ) return $code;
 	
 	$ad_media_url = esc_url( trim( $ad_media_url ) );
 	
@@ -1008,7 +982,9 @@ function administer_build_code( $args ) {
 		'onload' => $onload,
 		'onclick' => $onclick,
 	);	
-
+	
+	$code = '';
+	
 	$ext = strtolower( pathinfo( parse_url( $ad_media_url, PHP_URL_PATH ), PATHINFO_EXTENSION ) );
 	switch ( $ext ) {
 		case 'swf':
@@ -1032,30 +1008,21 @@ function administer_build_code( $args ) {
 			$code = administer_build_ad_img_code( $args );
 	}
 	
-	$code .= $ad_audio_url ? "[esplayer url='$ad_audio_url' width='$width' height='27']" : '';
-	
-	/*if ( ( get_option('administer_google_analytics') == 'true' ) && ( $id ) && ( $title ) ) {
-		$onload = administer_get_ga_tracking_code( 'Advertisement', 'Impression', $title );
-		$onclick = administer_get_ga_tracking_code( 'Advertisement', 'Click', $title );
-		$ga_code = 
-			"<script type='text/javascript' language='javascript'>" .
-			"jQuery(document).ready(function() {" .
-			"});	
-	}*/
-	
+	if ( $ad_audio_url )
+		$code .= "[audio src='$ad_audio_url']";
+
 	return $code;
 }
 
 function administer_build_code_callback() {
-	//global $wpdb; // this is how you get access to the database
-
 	$ad = array(
 		'ad_mode' => 'mode_basic',
 		'ad_media_url' => $_POST['ad_media_url'],
 		'ad_size' => $_POST['ad_size'],
 		'ad_hint' => $_POST['ad_hint'],
 		'ad_link_url' => $_POST['ad_link_url'],
-		'ad_audio_url' => $_POST['ad_audio_url']
+		'ad_audio_url' => $_POST['ad_audio_url'],
+		'code' => $_POST['code'],
 	);
 	
 	echo administer_build_code( $ad );
@@ -1094,7 +1061,7 @@ function administer_get_ad_code( $ad_id ) {
 		$content[$ad_id] = $ad;
 		administer_update_content( $content );
 	}
-	$code = ( $ad['ad_mode'] == 'mode_basic' ) ? administer_build_code( $ad ) : $ad['code'];
+	$code = administer_build_code( $ad );
 	
 	// Strip html slashes and expand shortcodes
 	$code = do_shortcode( stripslashes( $code ) );
