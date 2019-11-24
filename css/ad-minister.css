@@ -103,10 +103,29 @@ label.create {
 	width: 25%;
 }
 
+.ad-minister_page_ad-minister-positions .info {
+	font-size: 11px;
+}
+
+span.error {
+	background-color: #FFEBE8;
+	border: 1px solid #C00;
+	border-radius: 3px; -moz-border-radius: 3px;
+	/*(padding: 1px 5px;*/
+	margin-top: 3px;
+	margin-bottom: 3px;
+}
+
+.error {
+	background-color: #ffd7d7;
+}
+
 
 /**
 ***   The tabs at the top.
 **/
+
+/*
 .tabs
 {
 	margin: 0;
@@ -142,6 +161,71 @@ label.create {
 	color: #D54E21;
 	border-bottom: 1px solid #fff;
 }
+*/
+
+.tabs {
+	border-bottom: 1px solid #ccc;
+	margin:0; padding-top: 9px; padding-bottom: 0; line-height: inherit
+}
+.tabs:not(.wp-clearfix):after {
+	content:""; 
+	display: table; 
+	clear: both
+}
+.ie8 .tabs {
+	display: inline-block; 
+	width: 100%;
+	vertical-align: top
+}
+
+.tabs li {
+	margin-bottom: 0;
+}
+
+.tabs li a {
+	float: left;
+	border: 1px solid #ccc;
+	border-bottom: none;
+	margin-left: .5em;
+	/* Large
+	padding: 5px 10px;
+	font-size: 14px;
+	line-height: 1.71428571;*/
+	padding: 5px 14px;
+	font-size: 13px;
+	line-height: 1.33;
+	font-weight: 600;
+	background: #e5e5e5;
+	color: #555;
+	text-decoration: none;
+	white-space: nowrap
+}
+.tabs li a:focus, .tabs li a:hover {
+	background-color: #fff; 
+	color: #444
+}
+.tabs li a.tabs-current, .tabs li a:focus:active {
+	box-shadow: none
+}
+.tabs li a.tabs-current { 
+	margin-bottom: -1px; 
+	color:#444 
+}
+.tabs li a.tabs-current, .tabs-current:focus, .tabs-current:focus:active, .tabs-current:hover {
+	border-bottom: 1px solid #f1f1f1;
+	background: #f1f1f1;
+	color: #000
+}
+
+.tabs.tab-large li a {
+	padding: 5px 10px;
+	font-size: 14px;
+	line-height: 1.71428571;
+}
+
+/************************************************************************************
+ Banners Page
+*************************************************************************************/
 
 div th a {
 /*    font-size: 12px; */
@@ -164,21 +248,33 @@ li a.ad-almost-expired:hover {
 	color: #2EA2CC;
 }
 
-.ad-minister_page_ad-minister-positions .info {
-	font-size: 11px;
-}
 
-span.error {
-	background-color: #FFEBE8;
-	border: 1px solid #C00;
-	border-radius: 3px; -moz-border-radius: 3px;
-	/*(padding: 1px 5px;*/
-	margin-top: 3px;
-	margin-bottom: 3px;
+.filters {
+	list-style: none;
+	margin: 8px 0;
+	padding: 0;
+	color: #666;
 }
-
-.error {
-	background-color: #ffd7d7;
+.filters a {
+	line-height: 2;
+	padding: .2em; 
+	text-decoration: none
+}
+.filters a .count, 
+.filters a.current .count {
+	color: #555d66;
+	font-weight: 400
+}
+.filters a.current {
+	font-weight: 600;
+	border: none;
+	color: #000;
+}
+.filters li {
+	display: inline-block;
+	margin: 0;
+	padding: 0;
+	white-space: nowrap
 }
 
 /************************************************************************************

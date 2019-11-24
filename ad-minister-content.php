@@ -5,7 +5,7 @@
 	<div id="ads">
 		<?php
 		$ids = array();
-		$columns = array('selected', 'id', 'title', 'position', 'visible', 'time', 'impressions', 'clicks');
+		$columns = array( 'selected', 'id', 'title', 'position', 'visible', 'time', 'impressions', 'clicks' );
 		
 		// Check Bulk actions
 		if ( isset( $_POST['bulk_actions'] ) ) {
@@ -48,13 +48,14 @@
 		
 		$link = administer_get_page_url( "banner" );	
 		$table = array();
+		$filter_count = array ( 'all' => 0, 'visible' => 0, 'hidden' => 0 );
 		foreach ( array_keys( $contents ) as $i ) {
 
 			$ad = $contents[$i];
 
 			if ( !empty( $ids ) && !in_array( $ad['id'], $ids ) ) continue;
 		
-			$table['title'][$i] = administer_f($ad['title']);
+			$table['title'][$i] = administer_f( $ad['title'] );
 			$table['title_link'][$i] = $link . '&action=edit&id=' . $ad['id'];
 			if ( !is_array( $ad['position'] ) ) {
 				$ad['position'] = ( $ad['position'] == '-' ) ? array() : array( $ad['position'] );	
@@ -65,10 +66,10 @@
 			$table['position'][$i] = $ad['position'];
 			
 			// Check visibility
-			$is_visible = administer_is_visible($ad);
+			$is_visible = administer_is_visible( $ad );
 
 			// Set orphaned content as invisible
-			if (( $table['position'][$i] == '-') || empty( $table['position'][$i] ) ) $is_visible = false;
+			if ( ( $table['position'][$i] == '-') || empty( $table['position'][$i] ) ) $is_visible = false;
 			
 			// Get the time left based on schedule, if present
 			$time_left = administer_get_time_left( $ad['scheduele'] );
@@ -77,30 +78,30 @@
 			// Calculate and format the fractional weight, given as a percentage
 			$total_weight = 0;
 			
-			foreach ($contents as $content)
+			foreach ( $contents as $content )
 				if ( ( $ad['position'] == $content['position'] ) && administer_is_visible( $content ) )
 					$total_weight += ( $content['weight'] ) ? $content['weight'] : 1;		
-			$weight = ($ad['weight']) ? $ad['weight'] : 1;
-			$weight = (administer_is_visible($ad)) ? 100 * $weight / $total_weight : '';
-			$table['weight'][$i] = ($weight > 0 && $weight < 100) ? '(' . round($weight, 1) . '%)' : '';
+			$weight = ( $ad['weight'] ) ? $ad['weight'] : 1;
+			$weight = ( administer_is_visible( $ad ) ) ? 100 * $weight / $total_weight : '';
+			$table['weight'][$i] = ( $weight > 0 && $weight < 100 ) ? '(' . round($weight, 1) . '%)' : '';
 			
 			// Don't show percentages for orphans
-			if (!$table['position'] || $table['position'][$i] == '-') $table['weight'][$i] = '';
+			if ( !$table['position'] || $table['position'][$i] == '-' ) $table['weight'][$i] = '';
 
 			// Format impressions
 			$impressions = isset( $stats[$ad['id']]['i'] ) ? $stats[$ad['id']]['i'] : '0';
-			$impressions = ($ad['impressions']) ? $impressions . ' of ' . $ad['impressions'] : $impressions;
+			$impressions = ( $ad['impressions'] ) ? $impressions . ' of ' . $ad['impressions'] : $impressions;
 
 			// Format clicks
 			$clicks = isset( $stats[$ad['id']]['c'] ) ? $stats[$ad['id']]['c'] : '0';
-			$clicks = ($ad['clicks']) ? $clicks . ' of ' . $ad['clicks'] : $clicks;
+			$clicks = ( $ad['clicks'] ) ? $clicks . ' of ' . $ad['clicks'] : $clicks;
 
 			$table['clicks'][$i]      = $clicks;
 			$table['impressions'][$i] = $impressions;
 			$table['time'][$i]        = $time;
-			$table['visible'][$i]     = ($is_visible) ? __('Yes', 'ad-minister') : __('No', 'ad-minister');
+			$table['visible'][$i]     = ( $is_visible ) ? __('Yes', 'ad-minister') : __('No', 'ad-minister');
 			$table['id'][$i] = $ad['id'];
-			$table['row-class'][$i]   = ($is_visible) ? 'ad-visible' : 'ad-invisible';
+			$table['row-class'][$i]   = ( $is_visible ) ? 'ad-visible' : 'ad-invisible';
 			
 			if ( $time_left ) {
 				if ( ( $time_left > 0 ) && $is_visible ) {
@@ -117,6 +118,12 @@
 					$table['row-class'][$i] .= ' ad-in-transit';
 				}
 			}
+			
+			$filter_count['all'] += 1;
+			if ( $is_visible )
+				$filter_count['visible'] += 1;
+			else
+				$filter_count['hidden'] += 1;
 		}
 
 		// Do the sorting, only save sort column if we're in admin
@@ -149,7 +156,30 @@
 		
 		$order = isset( $_GET['order'] ) ? $_GET['order'] : '';		
 		$link = administer_get_page_url(); 
+		$filter = isset( $_GET['filter'] ) ? $_GET['filter'] : 'all';
 		?>
+		<ul class="filters">
+			<?php
+				$filter_items = array (
+					array ( 'filter' => 'all', 'label' => 'All' ),
+					array ( 'filter' => 'visible', 'label' => 'Visible' ),
+					array ( 'filter' => 'hidden', 'label' => 'Hidden'),
+				);
+				$filter_item_count = count( $filter_items );
+				for ( $i = 0; $i < $filter_item_count; ++$i ) {
+					$filter_item = $filter_items[$i];
+					$item_filter = $filter_item['filter'];
+					$href = $link . ( $item_filter ? '&filter=' . $item_filter : '' );
+					$current = ( $item_filter == $filter ) ? 'class="current" aria-current="page"' : '';
+					$count = isset( $filter_count[$item_filter] ) ? $filter_count[$item_filter] : 0;
+					$separator = ( $i == ( $filter_item_count - 1 ) ) ? '' : '|';
+					?>
+					<li class="<?php echo $item_filter; ?>"><a href="<?php echo $href; ?>" <?php echo $current; ?>><?php echo $filter_item['label']; ?> <span class="count">(<?php echo $count; ?>)</span></a><?php echo $separator ? ' ' . $separator : ''; ?></li>
+					<?php
+				}
+			?>
+		</ul>
+
 		<form id="form_bulk" name="form_bulk" method="POST" action="<?php echo $link; ?>">
 			<div style="margin-bottom: 4px;">
 				<select style="min-width: 150px;" id="bulk_actions" name="bulk_actions">
@@ -163,7 +193,7 @@
 			<table class="widefat">
 				<thead>
 					<tr>
-						<?php if ( in_array('selected', $columns) ) { ?>
+						<?php if ( in_array( 'selected', $columns ) ) { ?>
 							<th><input class='staddt_selected' type="checkbox" id="select_all" name="select_all" /></th>
 						<?php } ?>
 						
@@ -194,6 +224,10 @@
 				$rownbr = 0;
 				foreach ( $arr_keys as $i ) {
 					$class = ( $rownbr++ % 2 ) ? $table['row-class'][$i] : $table['row-class'][$i] . ' alternate'; 
+					if ( $filter ) {
+						if ( $filter == 'visible' && $table['visible'][$i] != 'Yes' ) continue;
+						if ( $filter == 'hidden' && $table['visible'][$i] == 'Yes' ) continue;
+					}
 				?>
 					<tr class="<?php echo $class; ?>">
 						<?php if (in_array('selected', ($columns))) : ?>
