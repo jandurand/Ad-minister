@@ -1222,10 +1222,13 @@ function administer_get_visible_ads( $position ) {
 function administer_display_position( $position ) {
 	
 	if ( ! $position ) return false;
-	if ( ! ( $positions = administer_get_positions() ) ) return false;	
 	
 	// Get visible ads in this ad position
-	if ( ! ( $ads = administer_get_visible_ads( $position ) ) ) return false;
+	if ( ! ( $ads = administer_get_visible_ads( $position ) ) ) {
+		return administer_google_adsense_display_position( $position );
+	}
+
+	if ( ! ( $positions = administer_get_positions() ) ) return false;	
 	
 	// Build weighted array of ad keys
 	$ad_keys = array();
@@ -1266,6 +1269,150 @@ function administer_display_position( $position ) {
 	}
 	
 	return $code;
+}
+
+/*
+**   administer_google_adsense_display_position ( )
+**
+*/
+
+const GOOGLE_ADSENSE_AD_SLOT_IDS = array (
+	'Article Bottom Right' => '2702633856',
+	'Article Comment Banner' => '6885421444',
+	'Article Comment Banner 1' => '1594917381',
+	'Article Comment Banner 2' => '6655672372',
+	'Article Comment Banner 3' => '2730554011',
+	'Article Comment Banner 4' => '1403345694',
+	'Article Comment Banner 5' => '1827346518',
+	'Article Headline Banner' => '1462360915',
+	'Article Logo Banner' => '2621693052',
+	'Article Margin Banner Left' => '3535021723',
+	'Article Margin Banner Right' => '1200841736',
+	'Article Menu Banner Left' => '2331308194',
+	'Article Post-Copyright Banner' => '8545362756',
+	'Article Side Banner 1' => '9933023084',
+	'Article Side Banner 2' => '1078199600',
+	'Article Side Banner 3' => '6349001291',
+	'Article Side Banner 4' => '9605720029',
+	'Article Side Banner 5' => '1537364600',
+	'Article Side Banner 6' => '7476086998',	
+	'Election Coverage Footer Banner' => '7987346591',
+	'Election Coverage Headline Banner' => '1421938249',
+	'Election Coverage Logo Banner' => '2618156765',
+	'Election Coverage Menu Banner' => '8722715907',
+	'Election Coverage Post-Content Banner' => '6291121547',
+	'Home Content Banner' => '4754704248',
+	'Home Content Banner 1' => '9447047745',
+	'Home Content Banner 2' => '5113406287',
+	'Home Content Banner 3' => '8759323043',
+	'Home Content Banner 4' => '8939286443',
+	'Home Content Banner 5' => '8364571379',
+	'Home Content Banner 6' => '4826465828',
+	'Home Content Banner 7' => '8949543669',
+	'Home Content Banner 8' => '8719794596',
+	'Home Headline Banner' => '9662099347',
+	'Home Logo Banner' => '5646832712',
+	'Home Menu Banner' => '2578720201',
+	'Home Side Banner' => '2441545879',
+	'Home Side Banner 1' => '3517719118',
+	'Home Side Banner 2' => '6306475552',
+	'Home Side Banner 3' => '1786939759',
+	'Home Side Banner 4' => '6272979670',
+	'Home Side Banner 5' => '8058540923',
+	'Home Side Banner 6' => '9418017769',
+);
+
+const GENERAL_AD_POSITIONS = array (
+	'Article Comment Banner',
+	'Article Side Banner',
+	'Home Side Banner',
+);
+
+const AD_POSITION_DIMENSIONS = array (
+	'Article Bottom Right' => array (
+		'height' => 250,
+	),
+	'Logo Banner' => array (
+		'height' => 140,
+	),
+	'Menu Banner' => array (
+		'height' => 100,
+	),
+	'Side Banner' => array (
+		'height' => 250,
+	),
+);
+
+function administer_google_adsense_ad_slot_id( $position ) {
+	return isset( GOOGLE_ADSENSE_AD_SLOT_IDS[$position] ) ? GOOGLE_ADSENSE_AD_SLOT_IDS[$position] : FALSE;
+}
+
+function administer_google_adsense_display_position( $position ) {
+	$result = FALSE;
+	
+	if ( ! ( $positions = administer_get_positions() ) ) return FALSE;
+
+	$ad_slot_id = administer_google_adsense_ad_slot_id( $position );
+	if ( $ad_slot_id === FALSE ) {
+		foreach ( GENERAL_AD_POSITIONS as $pos ) {
+			if ( strpos( $position, $pos ) === 0 ) {
+				$position = $pos;
+				$ad_slot_id = administer_google_adsense_ad_slot_id( $position );
+				break;
+			}
+		}
+	}
+
+	if ( $ad_slot_id ) {
+		$width = 0;
+		$height = 0;
+		foreach ( AD_POSITION_DIMENSIONS as $pos => $dim ) {
+			if ( strpos( $position, $pos ) !== FALSE ) {
+				$width = isset( $dim['width'] ) ? $dim['width'] : 0;
+				$height = isset( $dim['height'] ) ? $dim['height'] : 0;
+				break;
+			}
+		}
+
+		$class = isset( $positions[$position]['class'] ) ? $positions[$position]['class'] : '';
+		$before = ( $class ) ? "<div class='{$class}'>" : '';
+		$after = ( $class ) ? "</div>" : '';
+		$result = $before . administer_get_google_adsense_code( $position, $ad_slot_id, $width, $height ) . $after;
+	}
+
+	return $result;
+}
+
+/*
+**   administer_get_google_adsense_code ( )
+**
+*/
+function administer_get_google_adsense_code( $position, $ad_slot_id, $width = 0, $height = 0 ) {
+	if ( ( $width > 0 ) || ( $height > 0 ) ) {
+		return '<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+			<!-- ' . $position . ' -->
+			<ins class="adsbygoogle"
+				 style="display:inline-block' . ( $width > 0 ? ';max-width:' . $width . 'px' : '' ) . ';width:100%;height:' . ( $height > 0 ? $height . 'px' : 'auto' ) . '" 
+				 data-ad-client="ca-pub-6732730031512336" '
+				 . ( ( $width == 0 ) ? ' data-full-width-responsive="true" ' : '' ) .
+				 'data-ad-slot="' . $ad_slot_id . '"</ins>
+			<script>
+				 (adsbygoogle = window.adsbygoogle || []).push({});
+			</script>';
+	}
+	else {
+		return '<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+				<!-- ' . $position . ' -->
+				<ins class="adsbygoogle"
+					 style="display:block"
+					 data-ad-client="ca-pub-6732730031512336"
+					 data-ad-slot="' . $ad_slot_id . '"
+					 data-ad-format="auto"
+					 data-full-width-responsive="true"></ins>
+				<script>
+					 (adsbygoogle = window.adsbygoogle || []).push({});
+				</script>';
+	}
 }
 
 /*
