@@ -17,13 +17,15 @@
 		update_option( 'administer_dashboard_period', administer_get_post_var( 'administer_dashboard_period' ) );
 		update_option( 'administer_dashboard_percentage', administer_get_post_var( 'administer_dashboard_percentage' ) );
 		update_option( 'administer_user_level', administer_get_post_var( 'administer_user_level' ) );
-		
+		update_option( 'administer_google_adsense_exclude_urls', trim( administer_get_post_var( 'administer_google_adsense_exclude_urls' ) ) );
+
 		// Checkboxes...
-		$names = array( 
+		$names = array(
 			'administer_make_widgets', 
 			'administer_dashboard_show', 
 			'administer_statistics', 
-			'administer_google_analytics', 
+			'administer_google_analytics',
+			'administer_google_adsense',
 			'administer_rotate_ads', 
 			'administer_lazy_load',
 			'administer_resize_image'
@@ -67,6 +69,9 @@
 
 	if (!strlen(get_option('administer_user_level')))
 		update_option('administer_user_level', '7');
+
+	if (!strlen(get_option('administer_google_adsense')))
+		update_option('administer_google_adsense', 'true');
 		
 	// Display installation messsage 
 	if ( ! administer_get_post_id() )
@@ -94,8 +99,8 @@
 			 <tr>
 			 	<th scope="row" valign="top"><?php _e('Notifications', 'ad-minister'); ?></th>
 			 	<td>
-					<input type="checkbox" id="administer_dashbaord_show" name="administer_dashboard_show" <?php if (get_option('administer_dashboard_show') == 'true') echo ' checked="checked" '; ?> /> <label for="administer_dashbaord_show"><?php _e('Alert on the Dashboard of upcoming content expiration or activation.', 'ad-minister'); ?></label><br />
-					<?php _e('Number of days to check for upcoming events', 'ad-minister'); ?>: <input type="number" min="1" name="administer_dashboard_period" value="<?php echo get_option('administer_dashboard_period'); ?>" style="width: 60px;" /><br />
+					<input type="checkbox" id="administer_dashbaord_show" name="administer_dashboard_show" <?php if (get_option('administer_dashboard_show') == 'true') echo ' checked="checked" '; ?> /> <label for="administer_dashbaord_show"><?php _e('Alert on the Dashboard of upcoming content expiration or activation.', 'ad-minister'); ?></label><br /><br />
+					<?php _e('Number of days to check for upcoming events', 'ad-minister'); ?>: <input type="number" min="1" name="administer_dashboard_period" value="<?php echo get_option('administer_dashboard_period'); ?>" style="width: 60px;" /><br /><br />
 					<?php _e('Minimum percentage of clicks/impressions left before alerting', 'ad-minister'); ?>: <input type="number" min="1" name="administer_dashboard_percentage" value="<?php echo get_option('administer_dashboard_percentage'); ?>" style="width: 60px;" />
 			 	</td>
 			 </tr>
@@ -120,7 +125,7 @@
 			 <tr>
 			 	<th scope="row" valign="top"><?php _e('Ad Rotation', 'ad-minister'); ?></th>
 			 	<td>
-					<input type="checkbox" id="administer_rotate_ads" name="administer_rotate_ads" <?php if ( get_option( 'administer_rotate_ads' ) == 'true' ) echo ' checked="checked"'; ?> /> <label for="administer_rotate_ads"><?php _e('Allow multiple advertisements to rotate in a single position within a singe page load?', 'ad-minister'); ?></label><br />
+					<input type="checkbox" id="administer_rotate_ads" name="administer_rotate_ads" <?php if ( get_option( 'administer_rotate_ads' ) == 'true' ) echo ' checked="checked"'; ?> /> <label for="administer_rotate_ads"><?php _e('Allow multiple advertisements to rotate in a single position within a singe page load?', 'ad-minister'); ?></label><br /><br />
 					<?php _e('Default rotation time', 'ad-minister'); ?>: <input type="number" style="width: 60px;" id="administer_rotate_time" name="administer_rotate_time" min="1" value="<?php echo get_option( 'administer_rotate_time' ); ?>"> (<?php _e('Time between ad rotations in seconds', 'ad-minister'); ?>)	
 			 	</td>
 			 </tr>
@@ -144,10 +149,10 @@
 						<?php 
 						$user_capability = get_option('administer_user_level'); 
 						$roles = array(
-						"Administrator" => "manage_options",
-						"Editor" => "delete_others_posts",
-						"Author" => "delete_published_posts",
-						"Contributor" => "delete_posts",
+							"Administrator" => "manage_options",
+							"Editor" => "delete_others_posts",
+							"Author" => "delete_published_posts",
+							"Contributor" => "delete_posts",
 						);
 						foreach ( $roles as $role => $capability ) {
 						?>
@@ -157,7 +162,20 @@
 						?>
 					</select>
 			 	</td>
-			 </tr>			 
+			 </tr>
+			 <tr>
+			 	<th scope="row" valign="top"><?php _e('Google Adsense', 'ad-minister'); ?></th>
+			 	<td>
+					<input type="checkbox" id="administer_google_adsense" name="administer_google_adsense" <?php if (get_option('administer_google_adsense') == 'true') echo ' checked="checked"'; ?> /> <label for="administer_google_adsense"><?php _e('Allow Google Adsense ads?', 'ad-minister'); ?></label><br /><br />
+					
+					<?php
+					$option_name = 'administer_google_adsense_exclude_urls';
+					$option_value = get_option( $option_name );
+					?>
+					<label for="<?php echo $option_name; ?>"><?php _e( 'Add page urls to exclude from Google Adense on separate lines below:', 'ad-minister' ); ?></label><br /><br />
+					<textarea id="<?php echo $option_name; ?>" name="<?php echo $option_name; ?>" style="width:100%;resize:vertical" rows="10"><?php echo $option_value; ?></textarea>
+			 	</td>
+			 </tr>
 		</table>
 
 		<?php 

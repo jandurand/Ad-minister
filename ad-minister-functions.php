@@ -1286,8 +1286,8 @@ const GOOGLE_ADSENSE_AD_SLOT_IDS = array (
 	'Article Comment Banner 5' => '1827346518',
 	'Article Headline Banner' => '1462360915',
 	'Article Logo Banner' => '2621693052',
-	'Article Margin Banner Left' => '3535021723',
-	'Article Margin Banner Right' => '1200841736',
+	//'Article Margin Banner Left' => '3535021723',
+	//'Article Margin Banner Right' => '1200841736',
 	'Article Menu Banner Left' => '2331308194',
 	'Article Post-Copyright Banner' => '8545362756',
 	'Article Side Banner 1' => '9933023084',
@@ -1301,6 +1301,7 @@ const GOOGLE_ADSENSE_AD_SLOT_IDS = array (
 	'Election Coverage Logo Banner' => '2618156765',
 	'Election Coverage Menu Banner' => '8722715907',
 	'Election Coverage Post-Content Banner' => '6291121547',
+	'Home Bottom Left' => '3040908142',
 	'Home Content Banner' => '4754704248',
 	'Home Content Banner 1' => '9447047745',
 	'Home Content Banner 2' => '5113406287',
@@ -1322,7 +1323,7 @@ const GOOGLE_ADSENSE_AD_SLOT_IDS = array (
 	'Home Side Banner 6' => '9418017769',
 );
 
-const GENERAL_AD_POSITIONS = array (
+const GOOGLE_ADSENSE_GENERAL_POSITIONS = array (
 	'Article Comment Banner',
 	'Article Side Banner',
 	'Home Side Banner',
@@ -1334,27 +1335,55 @@ const AD_POSITION_DIMENSIONS = array (
 	),
 	'Logo Banner' => array (
 		'height' => 140,
+		'full_width_responsive' => FALSE,
 	),
 	'Menu Banner' => array (
-		'height' => 100,
+		'height' => 90,
+		'full_width_responsive' => FALSE,
 	),
 	'Side Banner' => array (
 		'height' => 250,
 	),
 );
 
+const GOOGLE_ADSENSE_CLIENTID = 'ca-pub-6732730031512336';
+
+function administer_google_adsense_allowed() {
+	if ( get_option( 'administer_google_adsense' ) !== 'true' ) return FALSE;
+
+	$page_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+
+	$exclude_urls = get_option( 'administer_google_adsense_exclude_urls' );
+	if ( ! empty( $exclude_urls ) ) {
+		$urls = explode( "\n", trim( str_replace( "\r", "", $exclude_urls ) ) );
+		foreach ( $urls as $url ) {
+			if ( strcasecmp( $page_url, $url ) === 0 ) return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
+function administer_google_adsense_script() {
+	if ( ! administer_google_adsense_allowed() ) return FALSE;
+?>	
+	<!-- Google Adsense -->
+	<script data-ad-client="<?php echo GOOGLE_ADSENSE_CLIENTID; ?>" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<?php	
+}
+
 function administer_google_adsense_ad_slot_id( $position ) {
 	return isset( GOOGLE_ADSENSE_AD_SLOT_IDS[$position] ) ? GOOGLE_ADSENSE_AD_SLOT_IDS[$position] : FALSE;
 }
 
 function administer_google_adsense_display_position( $position ) {
-	$result = FALSE;
+	if ( ! administer_google_adsense_allowed() ) return FALSE;
 	
-	if ( ! ( $positions = administer_get_positions() ) ) return FALSE;
+	$result = FALSE;
 
 	$ad_slot_id = administer_google_adsense_ad_slot_id( $position );
 	if ( $ad_slot_id === FALSE ) {
-		foreach ( GENERAL_AD_POSITIONS as $pos ) {
+		foreach ( GOOGLE_ADSENSE_GENERAL_POSITIONS as $pos ) {
 			if ( strpos( $position, $pos ) === 0 ) {
 				$position = $pos;
 				$ad_slot_id = administer_google_adsense_ad_slot_id( $position );
@@ -1366,18 +1395,23 @@ function administer_google_adsense_display_position( $position ) {
 	if ( $ad_slot_id ) {
 		$width = 0;
 		$height = 0;
+		$full_width_responsive = TRUE;
 		foreach ( AD_POSITION_DIMENSIONS as $pos => $dim ) {
 			if ( strpos( $position, $pos ) !== FALSE ) {
 				$width = isset( $dim['width'] ) ? $dim['width'] : 0;
 				$height = isset( $dim['height'] ) ? $dim['height'] : 0;
+				$full_width_responsive = isset( $dim['full_width_responsive'] ) ? $dim['full_width_responsive'] : TRUE;
 				break;
 			}
 		}
 
-		$class = isset( $positions[$position]['class'] ) ? $positions[$position]['class'] : '';
-		$before = ( $class ) ? "<div class='{$class}'>" : '';
-		$after = ( $class ) ? "</div>" : '';
-		$result = $before . administer_get_google_adsense_code( $position, $ad_slot_id, $width, $height ) . $after;
+		$code = administer_get_google_adsense_code( $position, $ad_slot_id, $width, $height, $full_width_responsive );
+		if ( $code ) {
+			$class = isset( $positions[$position]['class'] ) ? $positions[$position]['class'] : '';
+			$before = "<div class='adsense-container {$class}'>";
+			$after = "</div>";
+			$result = $before . $code . $after;
+		}
 	}
 
 	return $result;
@@ -1387,32 +1421,30 @@ function administer_google_adsense_display_position( $position ) {
 **   administer_get_google_adsense_code ( )
 **
 */
-function administer_get_google_adsense_code( $position, $ad_slot_id, $width = 0, $height = 0 ) {
+function administer_get_google_adsense_code( $position, $ad_slot_id, $width = 0, $height = 0, $full_width_responsive = TRUE ) {
+	$result = 
+		'<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+		<!-- ' . $position . ' -->
+		<ins class="adsbygoogle" ';
 	if ( ( $width > 0 ) || ( $height > 0 ) ) {
-		return '<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-			<!-- ' . $position . ' -->
-			<ins class="adsbygoogle"
-				 style="display:inline-block' . ( $width > 0 ? ';max-width:' . $width . 'px' : '' ) . ';width:100%;height:' . ( $height > 0 ? $height . 'px' : 'auto' ) . '" 
-				 data-ad-client="ca-pub-6732730031512336" '
-				 . ( ( $width == 0 ) ? ' data-full-width-responsive="true" ' : '' ) .
-				 'data-ad-slot="' . $ad_slot_id . '"</ins>
-			<script>
-				 (adsbygoogle = window.adsbygoogle || []).push({});
-			</script>';
+		$result .= 
+			'style="display:inline-block' . ( $width > 0 ? ';max-width:' . $width . 'px' : '' ) . ';width:100%' . ( $height > 0 ? ';height:' . $height . 'px' : '' ) . '" ';
+		if ( $full_width_responsive && (  $width == 0 ) )
+			$result .= ' data-full-width-responsive="true" ';
 	}
 	else {
-		return '<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-				<!-- ' . $position . ' -->
-				<ins class="adsbygoogle"
-					 style="display:block"
-					 data-ad-client="ca-pub-6732730031512336"
-					 data-ad-slot="' . $ad_slot_id . '"
-					 data-ad-format="auto"
-					 data-full-width-responsive="true"></ins>
-				<script>
-					 (adsbygoogle = window.adsbygoogle || []).push({});
-				</script>';
+		$result .= 
+			'style="display:block"
+			data-full-width-responsive="true"
+			data-ad-format="auto" ';
 	}
+	$result .= '
+		data-ad-client="' . GOOGLE_ADSENSE_CLIENTID . '"
+		data-ad-slot="' . $ad_slot_id . '"></ins>
+		<script>
+			(adsbygoogle = window.adsbygoogle || []).push({});
+		</script>';
+	return $result;
 }
 
 /*
@@ -1731,21 +1763,44 @@ function administer_delete_ad( $id ) {
 }
 
 // Returns an array containing all Ad-minister ad content
-function administer_get_content() {
-	$content = get_post_meta( administer_get_post_id(), 'administer_content', true );
-	return is_array( $content ) ? $content : array();
+function administer_get_content( $use_cache = TRUE ) {
+	global $administer_content;
+
+	if ( $use_cache && isset( $administer_content ) ) {
+		return $administer_content;
+	}
+
+	$administer_content = get_post_meta( administer_get_post_id(), 'administer_content', true );
+	if ( ! is_array( $administer_content ) ) {
+		$administer_content = array();
+	}
+	
+	return $administer_content;
 }
 
 // Returns an array containing all Ad-minister ad positions
-function administer_get_positions() { 
-	$positions = get_post_meta( administer_get_post_id(), 'administer_positions', true );
-	return is_array( $positions ) ? $positions : array();
+function administer_get_positions( $use_cache = TRUE ) { 
+	global $administer_positions;
+
+	if ( $use_cache && isset( $administer_positions ) ) {
+		return $administer_positions;
+	}
+
+	$administer_positions = get_post_meta( administer_get_post_id(), 'administer_positions', true );
+	if ( ! is_array( $administer_positions ) ) {
+		$administer_positions = array();
+	}
+	
+	return $administer_positions;
 }
 
 function administer_update_positions( $positions ) {
+	global $administer_positions;
+	$administer_positions = $positions;
+	
 	$post_id = administer_get_post_id();
 	$meta_key = 'administer_positions';
-	$meta_id = update_post_meta( $post_id, $meta_key, $positions );
+	$meta_id = update_post_meta( $post_id, $meta_key, $administer_positions );
 	
 	if ( $meta_id && $meta_id !== true ) {
 	    ob_start(); 

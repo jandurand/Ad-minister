@@ -204,8 +204,8 @@ function administer_start_session() {
 	else
 		$_SESSION['administer_key'] = rand( 0, $max_key - 1 );
 }
-administer_start_session();
-//add_action('init', 'administer_session', 1);
+//administer_start_session();
+//add_action( 'init', 'administer_start_session', 1 );
 
 function administer_register_type() {
 	$args = array(
