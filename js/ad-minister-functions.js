@@ -88,9 +88,17 @@
 				});
 			}
 					
+			// Choose tallest slide as sentinel
+			var $ss = null;
+			s.each(function() {
+				var $slide = $(this);
+				if (($ss === null) || ($slide.height() > $ss.height()))
+					$ss = $slide;
+			});
+
 			if (c.css(p)=='static')
 				css[p]='relative';
-			c.prepend($(s[0]).clone().css('visibility','hidden').css('opacity','0')).css(css);
+			c.prepend($ss.clone().css('visibility','hidden').css('opacity','0')).css(css);
 			s.css(scss);
 			if(f)
 				s.hide().eq(0).show();

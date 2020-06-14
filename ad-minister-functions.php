@@ -926,91 +926,94 @@ function administer_build_code( $args ) {
 	$args = wp_parse_args( $args, $defaults );
 	extract( $args );
 
-	if ( $ad_mode !== 'mode_basic' ) return $code;
+	if ( $ad_mode == 'mode_basic' )  {
+		$ad_media_url = esc_url( trim( $ad_media_url ) );
 	
-	$ad_media_url = esc_url( trim( $ad_media_url ) );
-	
-	if ( ! $ad_media_url ) return '';
-	
-	$width = '';
-	$height = '';
-	if ( ! $ad_size ) {
-		$img_path = parse_url( $ad_media_url, PHP_URL_PATH );
-		if ( ( $img_path !== NULL ) && ( $img_path !== FALSE ) ) {
-			$img_path = realpath( '.' . $img_path );
-			if ( $img_path !== FALSE ) {
-				$img_size = getimagesize( $img_path );
-				if ( $img_size !== FALSE ) {
-					list( $width, $height ) = $img_size; 
-					$width = ( $width == 0 ) ? '' : $width;
-					$height = ( $height == 0 ) ? '' : $height;
+		if ( ! $ad_media_url ) return '';
+		
+		$width = '';
+		$height = '';
+		if ( ! $ad_size ) {
+			$img_path = parse_url( $ad_media_url, PHP_URL_PATH );
+			if ( ( $img_path !== NULL ) && ( $img_path !== FALSE ) ) {
+				$img_path = realpath( '.' . $img_path );
+				if ( $img_path !== FALSE ) {
+					$img_size = getimagesize( $img_path );
+					if ( $img_size !== FALSE ) {
+						list( $width, $height ) = $img_size; 
+						$width = ( $width == 0 ) ? '' : $width;
+						$height = ( $height == 0 ) ? '' : $height;
+					}
 				}
 			}
 		}
-	}
-	else {
-		list( $width, $height ) = explode( 'x', $ad_size );
-	}
-	
-	$ad_link_url = esc_url_raw( trim( $ad_link_url ) );
-	if ( $ad_link_url ) {
-		if ( get_option( 'administer_statistics' ) == 'true' ) {
-			$ad_link_url = '%tracker%' . urlencode( str_replace( '%tracker%', '', $ad_link_url ) );
+		else {
+			list( $width, $height ) = explode( 'x', $ad_size );
 		}
-	}
-	
-	$ad_audio_url = esc_url( trim( $ad_audio_url ) );
-	
-	$ad_hint = esc_attr( trim( $ad_hint ) );
-	
-	$onload = '';
-	$onclick = '';
-	$title = esc_js( $title );
-	if ( ( get_option('administer_google_analytics') == 'true' ) && ( $title ) ) {
-		//$onload .= esc_js( administer_get_ga_tracking_code( 'Advertisement', 'Impression', $title ) ); // Commented out because of exceeding collection limits on Google Analytics account
-		$onclick .= esc_js( administer_get_ga_tracking_code( 'Advertisement', 'Click', $title, 1, true ) );
-	}
-
-	$args = array (
-		'id' => $id,
-		'title' => $title,
-		'src' => $ad_media_url,
-		'link_url' => $ad_link_url,
-		'width' => $width,
-		'height' => $height,
-		'hint' => $ad_hint,
-		'onload' => $onload,
-		'onclick' => $onclick,
-	);	
-	
-	$code = '';
-	
-	$ext = strtolower( pathinfo( parse_url( $ad_media_url, PHP_URL_PATH ), PATHINFO_EXTENSION ) );
-	switch ( $ext ) {
-		case 'swf':
-			$code = administer_build_ad_flash_swf_code( $args );
-			break;
 		
-		case 'flv':
-			$code = administer_build_ad_flash_flv_code( $args );
-			break;
-		
-		case 'mp4':
-			$code = administer_build_ad_mp4_code( $args );
-			break;
-		
-		default:
-			if ( get_option( 'administer_resize_image' ) == 'true' ) {
-				if ( ( $ext ) && ( 'gif' != $ext ) ) {
-					$args['src'] = administer_resize_image( array( 'src' => $args['src'], 'width' => $args['width'], 'height' => $args['height'] ) );	
-				}
+		$ad_link_url = esc_url_raw( trim( $ad_link_url ) );
+		if ( $ad_link_url ) {
+			if ( get_option( 'administer_statistics' ) == 'true' ) {
+				$ad_link_url = '%tracker%' . urlencode( str_replace( '%tracker%', '', $ad_link_url ) );
 			}
-			$code = administer_build_ad_img_code( $args );
+		}
+		
+		$ad_audio_url = esc_url( trim( $ad_audio_url ) );
+		
+		$ad_hint = esc_attr( trim( $ad_hint ) );
+		
+		$onload = '';
+		$onclick = '';
+		$title = esc_js( $title );
+		if ( ( get_option('administer_google_analytics') == 'true' ) && ( $title ) ) {
+			//$onload .= esc_js( administer_get_ga_tracking_code( 'Advertisement', 'Impression', $title ) ); // Commented out because of exceeding collection limits on Google Analytics account
+			$onclick .= esc_js( administer_get_ga_tracking_code( 'Advertisement', 'Click', $title, 1, true ) );
+		}
+	
+		$args = array (
+			'id' => $id,
+			'title' => $title,
+			'src' => $ad_media_url,
+			'link_url' => $ad_link_url,
+			'width' => $width,
+			'height' => $height,
+			'hint' => $ad_hint,
+			'onload' => $onload,
+			'onclick' => $onclick,
+		);	
+		
+		$code = '';
+		
+		$ext = strtolower( pathinfo( parse_url( $ad_media_url, PHP_URL_PATH ), PATHINFO_EXTENSION ) );
+		switch ( $ext ) {
+			case 'swf':
+				$code = administer_build_ad_flash_swf_code( $args );
+				break;
+			
+			case 'flv':
+				$code = administer_build_ad_flash_flv_code( $args );
+				break;
+			
+			case 'mp4':
+				$code = administer_build_ad_mp4_code( $args );
+				break;
+			
+			default:
+				if ( get_option( 'administer_resize_image' ) == 'true' ) {
+					if ( ( $ext ) && ( 'gif' != $ext ) ) {
+						$args['src'] = administer_resize_image( array( 'src' => $args['src'], 'width' => $args['width'], 'height' => $args['height'] ) );	
+					}
+				}
+				$code = administer_build_ad_img_code( $args );
+		}
+		
+		if ( $ad_audio_url )
+			$code .= "[audio src='$ad_audio_url']";
 	}
 	
-	if ( $ad_audio_url )
-		$code .= "[audio src='$ad_audio_url']";
-
+	// Strip html slashes and expand shortcodes
+	$code = do_shortcode( stripslashes( $code ) );
+	
 	return $code;
 }
 
@@ -1029,7 +1032,7 @@ function administer_build_code_callback() {
 	
 	die(); // this is required to return a proper result
 }
-add_action('wp_ajax_administer_build_code', 'administer_build_code_callback');
+add_action( 'wp_ajax_administer_build_code', 'administer_build_code_callback' );
 
 // Returns a random value from an array with a weighted bias
 function array_rand_weighted( array $values, array $weights ) {
@@ -1051,7 +1054,7 @@ function array_rand_weighted( array $values, array $weights ) {
 
 // Returns the parsed, expanded code for the given advertisement id
 function administer_get_ad_code( $ad_id ) {
-	if ( ! administer_get_post_id() ) return;	
+	if ( ! administer_get_post_id() ) return;
 	if ( ! ( $content = administer_get_content() ) ) return;
 	
 	// Get advertisement code
@@ -1062,9 +1065,6 @@ function administer_get_ad_code( $ad_id ) {
 		administer_update_content( $content );
 	}
 	$code = administer_build_code( $ad );
-	
-	// Strip html slashes and expand shortcodes
-	$code = do_shortcode( stripslashes( $code ) );
 	
 	return $code;
 }

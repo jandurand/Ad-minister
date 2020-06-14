@@ -52,7 +52,7 @@
 
 			// Build code from field information if in basic mode
 			if ( ( $content[$id]['ad_mode'] == 'mode_basic' ) and ( $content[$id]['code'] == '') ) {
-				$content[$id]['code'] = do_shortcode( stripslashes( administer_build_code( $content[$id] ) ) );
+				$content[$id]['code'] = administer_build_code( $content[$id] );
 			}
 			
 			// Save ad content
