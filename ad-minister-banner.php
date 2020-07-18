@@ -10,6 +10,9 @@
 	$resetimpressions = isset( $_GET['resetimpressions'] ) && ( $_GET['resetimpressions'] == 'true' );
 	$resetclicks = isset( $_GET['resetclicks'] ) && ( $_GET['resetclicks'] == 'true' );
 	
+	$content = NULL;
+	$value = NULL;
+
 	if ( $is_edit ) {
 	?>
 		<h2>Edit Banner <a href="<?php echo administer_get_page_url( "banner" ); ?>" class="add-new-h2">Add New</a></h2>
@@ -60,6 +63,8 @@
 			
 			do_action( 'administer_edit_ad', $content[$id] );
 			
+			$value = $content[$id];
+
 			// Notify
 			echo '<div id="message" class="updated fade"><p><strong>' . __('Banner Saved.', 'ad-minister') . '</strong></p></div>';
 		
@@ -72,14 +77,14 @@
 			// Notify 
 			echo '<div id="message" class="updated fade"><p><strong>' . __('Deleted!', 'ad-minister') . '</strong></p></div>';
 		}
-
-		$content = administer_get_content();
+		
+		$content = $content ? $content : administer_get_content();
 		if ( empty( $content ) )
 			echo '<div id="message" class="updated fade"><p><strong>' . __('There is no content! Do make some.', 'ad-minister') . '</strong></p></div>';
 
 		// Are we editing?
 		if ( $is_edit && $edit_id ) {
-			$value = $content[$edit_id];
+			$value = $value ? $value : $content[$edit_id];
 			
 			// For legacy ads
 			$value['ad_mode'] = !isset( $value['ad_mode'] ) ? 'mode_advanced' : $value['ad_mode'];
