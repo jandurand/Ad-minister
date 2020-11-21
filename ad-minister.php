@@ -183,30 +183,6 @@ function administer_wp_head() {
 }
 add_action( 'wp_head', 'administer_wp_head' );
 
-function administer_start_session() {
-	if ( is_admin() ) return;
-	
-	if ( function_exists( 'session_status' ) ) {
-		if ( session_status() == PHP_SESSION_NONE ) {
-			session_start();
-		}
-	}
-	else if ( session_id() == '' ) {
-		session_start();
-	}
-	
-	// Define $_SESSION['administer_key'] used to help in deciding
-	// the first (or only) ad to be displayed in a given ad position.
-	// Set max key to avoid performance hits from modulus operation on large numbers.
-	$max_key = 30;
-	if ( isset( $_SESSION['administer_key'] ) )
-		$_SESSION['administer_key'] = ( $_SESSION['administer_key'] + 1 ) % $max_key;
-	else
-		$_SESSION['administer_key'] = rand( 0, $max_key - 1 );
-}
-//administer_start_session();
-//add_action( 'init', 'administer_start_session', 1 );
-
 function administer_register_type() {
 	$args = array(
 		'public' => false

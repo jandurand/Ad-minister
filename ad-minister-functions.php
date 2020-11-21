@@ -1237,16 +1237,8 @@ function administer_display_position( $position ) {
 	}
 	sort( $ad_keys );
 	
-	// Select ad to display
-	$ad_key = 0;
-	if ( isset( $_SESSION['administer_key'] ) ) {
-		// Use session info if available to select ad to display
-		$ad_key = ( $_SESSION['administer_key'] ) % count( $ad_keys ); 
-	}
-	else {
-		// Randomly select an ad taking weight into consideration
-		$ad_key = array_rand( $ad_keys );
-	}
+	// Randomly select an ad taking weight into consideration
+	$ad_key = array_rand( $ad_keys );
 	$ad = $ads[$ad_key];
 	
 	$rotate = isset( $positions[$position]['rotate'] ) ? $positions[$position]['rotate'] : '';
