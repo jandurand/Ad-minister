@@ -743,7 +743,7 @@ function administer_build_ad_img_code( $args ) {
 	$code = "";
 	if ( ( ! is_admin() ) && ( get_option( 'administer_lazy_load' ) == 'true' ) ) {	
 		$code .= "<noscript><img src='{$src}' {$img_style} {$img_width} {$img_height} {$img_onload} {$img_hint} /></noscript>";
-		$code .= "<img class='lazyload' data-src='{$src}' {$img_style} {$img_width} {$img_height} {$img_onload} {$img_hint} />";
+		$code .= "<img class='lazyload' loading='lazy' data-src='{$src}' {$img_style} {$img_width} {$img_height} {$img_onload} {$img_hint} />";
 	}
 	else {
 		$code .= "<img src='{$src}' {$img_style} {$img_width} {$img_height} {$img_onload} {$img_hint} />";
