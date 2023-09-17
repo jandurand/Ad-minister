@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Ad-minister Plus
-Version: 0.6
+Version: 0.6.1
 Plugin URI: http://labs.dagensskiva.com/plugins/ad-minister/
 Author URI: http://labs.dagensskiva.com/
 Description:  A management system for temporary static content (such as ads) on your WordPress website. Ad-minister->All Banners to administer.
@@ -164,22 +164,29 @@ function administer_wp_enqueue_scripts() {
 	wp_register_script( 'administer-functions', plugins_url( $script, __FILE__ ), array( 'jquery' ), $version );
 	wp_enqueue_script( 'administer-functions' );
 	
-	$script = 'js/lazysizes.min.js';
-	$version = '5.1.1';
-	wp_enqueue_script( 'administer-lazysizes', plugins_url( $script, __FILE__ ), null, $version );
+	// https://github.com/mfranzke/loading-attribute-polyfill/tree/main
+	$script = 'js/loading-attribute-polyfill.umd.js';
+	$version = filemtime( plugin_dir_path( __FILE__ ) . $script );
+	$args = array( 
+		'in_footer' => true,
+		'strategy'  => 'async',
+	);
+	wp_enqueue_script( 'administer-lazyloading', plugins_url( $script, __FILE__ ), array(), $version, $args );
 }
 add_action('wp_enqueue_scripts', 'administer_wp_enqueue_scripts');
 
 function administer_wp_enqueue_styles() {	
 	$script = 'css/ad-minister.css';
 	$version = filemtime( plugin_dir_path( __FILE__ ) . $script );
-	wp_enqueue_style( 'ad-minister', plugins_url( $script, __FILE__ ), null, $version );	
+	wp_enqueue_style( 'ad-minister', plugins_url( $script, __FILE__ ), null, $version );
+	
+	$script = 'css/loading-attribute-polyfill.css';
+	$version = filemtime( plugin_dir_path( __FILE__ ) . $script );
+	wp_enqueue_style( 'ad-minister-lazyloading', plugins_url( $script, __FILE__ ), null, $version );
 }
 add_action('wp_enqueue_scripts', 'administer_wp_enqueue_styles');
 
 function administer_wp_head() {
-    // Hide lazyload content if javascript is unsupported
-	echo '<noscript><style> .ad-minister-ad img.lazyload { display: none; } </style></noscript>';
 }
 add_action( 'wp_head', 'administer_wp_head' );
 

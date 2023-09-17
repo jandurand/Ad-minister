@@ -297,7 +297,7 @@ function administer_dashboard_widget () {
 	foreach ( $content as $con ) {
 	
 		// Format impressions
-		$impressions = ($stats[$con['id']]['i']) ? $stats[$con['id']]['i'] : 0;
+		$impressions = isset($stats[$con['id']]['i']) ? $stats[$con['id']]['i'] : 0;
 		$impressions_p = ($con['impressions']) ? 100 * $impressions / $con['impressions'] : 0;
 		if ($impressions_p > 100 - get_option('administer_dashboard_percentage') && $impressions_p < 100) {
 			$li_impressions .= '<li><a href="' . $url . '&cshow=' . urlencode($con['position']) . '">' . $con['title'] . '</a>';
@@ -305,7 +305,7 @@ function administer_dashboard_widget () {
 		}
 		
 		// Format clicks
-		$clicks = ($stats[$con['id']]['c']) ? $stats[$con['id']]['c'] : 0;
+		$clicks = isset($stats[$con['id']]['c']) ? $stats[$con['id']]['c'] : 0;
 		$clicks_p = ($con['clicks']) ? 100 * $clicks / $con['clicks'] : 0;
 		if ($clicks_p > 100 - get_option('administer_dashboard_percentage') && $clicks_p < 100) {
 			$li_clicks .= '<li><a href="' . $url . '&cshow=' . urlencode($con['position']) . '">' . $con['title'] . '</a>';
@@ -324,7 +324,7 @@ function administer_dashboard_widget () {
 			else
 				$link_class = 'ad-expiring';
 			
-			$link_url .= $banner_url . '&action=edit&id=' . $con['id'];
+			$link_url = $banner_url . '&action=edit&id=' . $con['id'];
 			$li_time_left = '<li><a class="' . $link_class . '" href="' . $link_url . '">' . $con['title'] . '</a> - ' . $time_left_string . '</li>';
 			$events_by_time[] = array( 'time_left' => $time_left, 'li_time_left' => $li_time_left );
 		}
@@ -402,7 +402,7 @@ function administer_translate(){
 **/
 function administer_export () {
 	global $post_ids;
-	if ($_GET['administer'])
+	if (isset($_GET['administer']) && $_GET['administer'])
 		$post_ids = array(administer_get_post_id());
 }
 
@@ -429,14 +429,18 @@ function administer_load_widgets() {
 class AdministerWidget extends WP_Widget {
 
 	function __construct() {
-		//Constructor
-		//parent::WP_Widget(false, $name = 'Ad-minister', array('description' => 'Widget For Ad-minister Plugin.'));
+		// Constructor
 		parent::__construct( false, $name = 'Ad-minister', array( 'description' => 'Widget For Ad-minister Plugin.' ) );
 	}
 
 	function widget($args, $instance) {
+		if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
+			return false;
+		}
+		
 		// outputs the content of the widget
-		extract( $args );
+		$before_widget = $args['before_widget'];
+		$after_widget = $args['after_widget'];
 		$position = $instance['position'];
 
 		// Create widget position if it does exist
@@ -742,8 +746,7 @@ function administer_build_ad_img_code( $args ) {
 	
 	$code = "";
 	if ( ( ! is_admin() ) && ( get_option( 'administer_lazy_load' ) == 'true' ) ) {	
-		$code .= "<noscript><img src='{$src}' {$img_style} {$img_width} {$img_height} {$img_onload} {$img_hint} /></noscript>";
-		$code .= "<img class='lazyload' loading='lazy' data-src='{$src}' {$img_style} {$img_width} {$img_height} {$img_onload} {$img_hint} />";
+		$code .= "<noscript class='loading-lazy'><img loading='lazy' src='{$src}' {$img_style} {$img_width} {$img_height} {$img_onload} {$img_hint} /></noscript>";
 	}
 	else {
 		$code .= "<img src='{$src}' {$img_style} {$img_width} {$img_height} {$img_onload} {$img_hint} />";
@@ -910,6 +913,39 @@ function administer_build_ad_mp4_code( $args ) {
 	return $html;
 }
 
+function administer_get_ad_dimensions( $args ) {
+	$defaults = array(
+		'ad_size' => '',
+		'ad_media_url' => '',
+	);
+	$args = wp_parse_args( $args, $defaults );
+	extract( $args );
+	
+	$ad_media_url = esc_url( trim( $ad_media_url ) );
+
+	$width = '';
+	$height = '';
+	if ( $ad_size ) {
+		list( $width, $height ) = explode( 'x', $ad_size );
+	}
+	else if ( $ad_media_url ) {
+		$img_path = parse_url( $ad_media_url, PHP_URL_PATH );
+		if ( ( $img_path !== NULL ) && ( $img_path !== FALSE ) ) {
+			$img_path = realpath( '.' . $img_path );
+			if ( $img_path !== FALSE ) {
+				$img_size = getimagesize( $img_path );
+				if ( $img_size !== FALSE ) {
+					list( $width, $height ) = $img_size; 
+					$width = ( $width == 0 ) ? '' : $width;
+					$height = ( $height == 0 ) ? '' : $height;
+				}
+			}
+		}
+	}
+
+	return array( 'width' => $width, 'height' => $height );
+}
+
 /*
 **   administer_build_code ( )
 **
@@ -931,25 +967,9 @@ function administer_build_code( $args ) {
 	
 		if ( ! $ad_media_url ) return '';
 		
-		$width = '';
-		$height = '';
-		if ( ! $ad_size ) {
-			$img_path = parse_url( $ad_media_url, PHP_URL_PATH );
-			if ( ( $img_path !== NULL ) && ( $img_path !== FALSE ) ) {
-				$img_path = realpath( '.' . $img_path );
-				if ( $img_path !== FALSE ) {
-					$img_size = getimagesize( $img_path );
-					if ( $img_size !== FALSE ) {
-						list( $width, $height ) = $img_size; 
-						$width = ( $width == 0 ) ? '' : $width;
-						$height = ( $height == 0 ) ? '' : $height;
-					}
-				}
-			}
-		}
-		else {
-			list( $width, $height ) = explode( 'x', $ad_size );
-		}
+		$dimensions = administer_get_ad_dimensions( $args );
+		$width = $dimensions['width'];
+		$height = $dimensions['height'];
 		
 		$ad_link_url = esc_url_raw( trim( $ad_link_url ) );
 		if ( $ad_link_url ) {
@@ -1052,18 +1072,17 @@ function array_rand_weighted( array $values, array $weights ) {
 	}
 }
 
-// Returns the parsed, expanded code for the given advertisement id
-function administer_get_ad_code( $ad_id ) {
-	if ( ! administer_get_post_id() ) return;
-	if ( ! ( $content = administer_get_content() ) ) return;
-	
-	// Get advertisement code
-	$ad = $content[$ad_id];
-	if ( ! ( $ad['ad_mode'] ) ) {
-		$ad['ad_mode'] = 'mode_advanced';
-		$content[$ad_id] = $ad;
-		administer_update_content( $content );
+// Returns the parsed, expanded code for the given advertisement
+function administer_get_ad_code( $ad ) {
+	if ( $ad && !is_array( $ad ) ) {
+		if ( ! administer_get_post_id() ) return;
+		if ( ! ( $content = administer_get_content() ) ) return;
+		
+		// Get advertisement code
+		$ad_id = $ad;
+		$ad = $content[$ad_id];
 	}
+	
 	$code = administer_build_code( $ad );
 	
 	return $code;
@@ -1087,11 +1106,12 @@ if ( !function_exists( 'administer_get_display_code' ) ) {
 			
 		if ( ! $position ) return '';
 		
+		$max_height = 0;
 		$code_blocks = array();
 		foreach ( $ads as $key => $ad ) {
 		
 			// Get advertisement code
-			$code = administer_get_ad_code( $ad['id'] );
+			$code = administer_get_ad_code( $ad );
 			
 			// Replace click tracker place-holder
 			if ( false !== strpos( $code, '%tracker%' ) ) {
@@ -1123,6 +1143,13 @@ if ( !function_exists( 'administer_get_display_code' ) ) {
 				$code_blocks[] = $code;
 			}
 			
+			$dimensions = administer_get_ad_dimensions( $ad );
+			$height = $dimensions['height'];
+			if ( $height ) {
+				$height = (float)$height;
+				$max_height = max( $max_height, $height );
+			}
+
 		}
 		
 		$code = implode( '', $code_blocks );
@@ -1138,6 +1165,9 @@ if ( !function_exists( 'administer_get_display_code' ) ) {
 			
 			$class .= " administer-ad-container";
 			$tag_attributes .= " class='{$class}'";
+			if ( $max_height ) {
+				$tag_attributes .= " style='min-height: {$max_height}px'";
+			}
 			$code = "<div {$tag_attributes}>" . $code . "</div>";
 		}
 		
@@ -1188,9 +1218,7 @@ if ( !function_exists( 'administer_get_rotate_display_code' ) ) {
 **
 **	Return array of visible ads in this position.
 */
-
 function administer_get_visible_ads( $position ) {
-	
 	if ( ! $position ) return;
 	
 	if ( ! ( $positions = administer_get_positions() ) ) return;
@@ -1210,8 +1238,7 @@ function administer_get_visible_ads( $position ) {
 		$ads[] = $ad;
 	}
 
-	return $ads;
-	
+	return $ads;	
 }	
 		
 /*
@@ -1321,7 +1348,7 @@ const GOOGLE_ADSENSE_GENERAL_POSITIONS = array (
 	'Home Side Banner',
 );
 
-const AD_POSITION_DIMENSIONS = array (
+const GOOGLE_AD_POSITION_DIMENSIONS = array (
 	'Article Bottom Right' => array (
 		'height' => 250,
 	),
@@ -1336,14 +1363,29 @@ const AD_POSITION_DIMENSIONS = array (
 	'Side Banner' => array (
 		'height' => 250,
 	),
+	'Headline Banner' => array (
+		'height' => 90,
+	),
+	'Content Banner' => array (
+		'height' => 90,
+	),
+	'Comment Banner' => array (
+		'height' => 90,
+		'full_width_responsive' => FALSE,
+	),
 );
 
 const GOOGLE_ADSENSE_CLIENTID = 'ca-pub-6732730031512336';
 
 function administer_google_adsense_allowed() {
+	if ( is_admin() ) return FALSE;
 	if ( get_option( 'administer_google_adsense' ) !== 'true' ) return FALSE;
+	if ( !isset( $_SERVER['HTTP_HOST'] ) ) return FALSE;
 
-	$page_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+	$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
+	$host = $_SERVER['HTTP_HOST'];
+	$path = $_SERVER['REQUEST_URI'];
+	$page_url = "{$protocol}://{$host}{$path}";
 
 	$exclude_urls = get_option( 'administer_google_adsense_exclude_urls' );
 	if ( ! empty( $exclude_urls ) ) {
@@ -1388,7 +1430,7 @@ function administer_google_adsense_display_position( $position ) {
 		$width = 0;
 		$height = 0;
 		$full_width_responsive = TRUE;
-		foreach ( AD_POSITION_DIMENSIONS as $pos => $dim ) {
+		foreach ( GOOGLE_AD_POSITION_DIMENSIONS as $pos => $dim ) {
 			if ( strpos( $position, $pos ) !== FALSE ) {
 				$width = isset( $dim['width'] ) ? $dim['width'] : 0;
 				$height = isset( $dim['height'] ) ? $dim['height'] : 0;
@@ -1694,7 +1736,7 @@ add_filter('wp_default_editor', 'administer_default_editor_to_html');
  * @return $form_fields, modified form fields
  */
 function administer_attachment_fields_to_edit( $form_fields, $post ) {
-	if ( !( $_GET['ad-minister']  ) ) return $form_fields; 
+	if ( !( isset( $_GET['ad-minister'] ) && $_GET['ad-minister'] ) ) return $form_fields; 
 	
 	$attachment = get_post($post->ID); // fetching attachment by $id passed through
 	$mime_type = $attachment->post_mime_type; //getting the mime-type
@@ -1732,7 +1774,7 @@ add_filter( 'attachment_fields_to_edit', 'administer_attachment_fields_to_edit',
  * @return $post array, modified post data
  */
 function administer_attachment_fields_to_save( $post, $attachment ) {	
-	if( isset( $attachment['ad-minister-flash-ad-dimensions'] ) )
+	if ( isset( $attachment['ad-minister-flash-ad-dimensions'] ) )
 		update_post_meta( $post['ID'], 'ad-minister-flash-ad-dimensions', $attachment['ad-minister-flash-ad-dimensions'] );
 	return $post;
 }

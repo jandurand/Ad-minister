@@ -337,8 +337,3 @@ li a.ad-almost-expired:hover {
 .tcycle .administer-ad:first-child { 
 	display: block 
 }
-
-.administer-ad.first-ad .administer-lazy-load, 
-.administer-ad :first-child .administer-lazy-load { 
-	display: none 
-}
