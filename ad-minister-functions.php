@@ -430,24 +430,32 @@ class AdministerWidget extends WP_Widget {
 
 	function __construct() {
 		// Constructor
-		parent::__construct( false, $name = 'Ad-minister', array( 'description' => 'Widget For Ad-minister Plugin.' ) );
+		$widget_ops = array(
+			'description' => 'Widget For Ad-minister Plugin.',
+			'show_instance_in_rest' => true,
+		);
+		parent::__construct( 'administer_widget', $name = 'Administer Widget', $widget_ops );
 	}
 
-	function widget($args, $instance) {
-		if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
-			return false;
-		}
-		
+	function widget($args, $instance) {		
 		// outputs the content of the widget
 		$before_widget = $args['before_widget'];
 		$after_widget = $args['after_widget'];
 		$position = $instance['position'];
-
-		// Create widget position if it does exist
+				
 		if ( empty( $position ) ) return false;
+
+		if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
+			// Widget preview in admin backend
+			?>
+			<span style="font-size: 12px; font-weight: bold;"><?php _e( $this->name, 'ad-minister' ); ?>: <?php _e( $position, 'ad-minister' ); ?></span>			
+			<?php
+			return false;
+		}
 		
 		$positions = administer_get_positions();
 		
+		// Create widget position if it does not exist
 		if ( !isset( $positions[$position] ) ) {
 			$positions[$position] = array (
 				'position' => $position,
@@ -457,8 +465,8 @@ class AdministerWidget extends WP_Widget {
 			);
 			administer_update_positions( $positions );
 		}
-		
-		$code = administer_display_position( $position ); 
+
+		$code = administer_display_position( $position );
 		if ( $code ) {
 			$code = $before_widget . $code . $after_widget;
 		}
@@ -623,12 +631,11 @@ function administer_is_visible( $ad ) {
 **   Return Google analytics tracking code.
 */
 function administer_get_ga_tracking_code( $category, $action, $opt_label ) {
-	// Old Google Analytics Code
-	//code = "_gaq.push([\'_trackEvent\', \'{$category}\', \'{$action}\', \'{$opt_label}\']);";
-	
 	// Build Google Universal Analytics Tracking Code
-	$code = "if ( typeof(ga) == \'function\' ) { ga(\'send\', \'event\', \'{$category}\', \'{$action}\', \'{$opt_label}\'); }";
-	
+	$category = esc_js( $category );
+	$action = esc_js( $action );
+	$opt_label = esc_js( $opt_label );
+	$code = "if (typeof(ga) == \"function\") { ga(\"send\", \"event\", \"{$category}\", \"{$action}\", \"{$opt_label}\"); }";
 	return $code;
 }
 
@@ -642,7 +649,7 @@ function administer_resize_image( $args ) {
 		'quality' => 70,
 	);
 	$args = wp_parse_args( $args, $defaults );
-	extract( $args );	
+	extract( $args );
 	
 	if ( ! $src )
 		return '';
@@ -670,7 +677,7 @@ function administer_build_ad_link_code( $args ) {
 		'hint' => '',
 		'onload' => '',
 		'onclick' => '',
-		'class' => ''
+		'style' => ''
 	);
 	$args = wp_parse_args( $args, $defaults );
 	extract( $args );
@@ -689,9 +696,6 @@ function administer_build_ad_link_code( $args ) {
 		$link_url_alt = '';
 	}
 	
-	$onload = esc_js( $onload );
-	$onclick = esc_js( $onclick );
-	
 	if ( $onload ) {
 		$onload = "onload=\"{$onload}\"";
 	}
@@ -699,8 +703,10 @@ function administer_build_ad_link_code( $args ) {
 	if ( $onclick ) {
 		$onclick = "onclick=\"{$onclick}\"";
 	}
+
+	$class = 'administer-adlink';
 	
-	$code = "<a {$link_url_id} class='{$class}' {$link_url_title} {$link_url_alt} href='{$href}' {$onclick} {$onload} target='_blank' rel='nofollow, noindex'>{$content}</a>";
+	$code = "<a {$link_url_id} class='{$class}' style='{$style}' {$link_url_title} {$link_url_alt} href='{$href}' {$onclick} {$onload} target='_blank' rel='nofollow, noindex'>{$content}</a>";
 	
 	return $code;
 }
@@ -727,9 +733,6 @@ function administer_build_ad_img_code( $args ) {
 	
 	if ( ! $src ) return '';
 	
-	$onload = esc_js( $onload );
-	$onclick = esc_js( $onclick );		
-	
 	$img_style = "";
 	if ( $width ) {
 		$img_style .= "width: {$width}px; ";
@@ -743,13 +746,13 @@ function administer_build_ad_img_code( $args ) {
 	$img_height = $height ? "height='{$height}'" : "";
 	$img_onload = $onload ? "onload=\"{$onload}\"" : "";
 	$img_hint = $hint ? "title='{$hint}'" : "";
-	
+
 	$code = "";
 	if ( ( ! is_admin() ) && ( get_option( 'administer_lazy_load' ) == 'true' ) ) {	
-		$code .= "<noscript class='loading-lazy'><img loading='lazy' src='{$src}' {$img_style} {$img_width} {$img_height} {$img_onload} {$img_hint} /></noscript>";
+		$code .= "<noscript class='loading-lazy'><img class='administer-image' alt='advertisement' loading='lazy' src='{$src}' {$img_style} {$img_width} {$img_height} {$img_onload} {$img_hint} /></noscript>";
 	}
 	else {
-		$code .= "<img src='{$src}' {$img_style} {$img_width} {$img_height} {$img_onload} {$img_hint} />";
+		$code .= "<img class='administer-image' alt='advertisement' src='{$src}' {$img_style} {$img_width} {$img_height} {$img_onload} {$img_hint} />";
 	}
 		
 	$code = administer_build_ad_link_code( array(
@@ -762,96 +765,6 @@ function administer_build_ad_img_code( $args ) {
 	
 	return $code;
 }
-
-/*
-**   administer_build_ad_flash_swf_code ( $args )
-**
-**   Returns flash swf object banner html from supplied arguments.
-*/
-function administer_build_ad_flash_swf_code( $args ) {
-	$defaults = array(
-		'id' => rand(),
-		'title' => '',
-		'src' => '',
-		'link_url' => '',
-		'width' => '',
-		'height' => '',
-		'hint' => '',
-		'onload' => '',
-		'onclick' => '',
-	);
-	$args = wp_parse_args( $args, $defaults );
-	extract( $args );
-	
-	if ( empty( $src ) )
-		return '';
-	
-	if ( $link_url ) 
-		$src .= '?clickTAG=' . $link_url;
-	
-	$tag_id = 'swfobject' . $id;
-	$html = "<object id='{$tag_id}' classid='clsid:D27CDB6E-AE6D-11cf-96B8-444553540000' width='$width' height='$height'><param name='movie' value='$src' /><param name='wmode' value='transparent' /><param name='loop' value='true' /><!--[if !IE]>--><object type='application/x-shockwave-flash' data='$src' width='$width' height='$height'><param name='wmode' value='transparent' /><param name='loop' value='true' /><!--<![endif]--><p>Flash Content Unavailable</p><!--[if !IE]>--></object><!--<![endif]--></object>";
-	
-	// Register SWF Object
-	$express_install_path = plugins_url( 'script/swfobject/expressInstall.swf', __FILE__ );
-	$html .= "<script type='text/javascript' language='javascript'>swfobject.registerObject('swfobject$id', '9', '$express_install_path');</script>";
-	$html .= "<script type='text/javascript' language='javascript'>jQuery('#{$tag_id}').ready(function(){ {$onload} });</script>";
-	
-	$html .= administer_build_ad_link_code( array(
-		'id' => $id,
-		'href' => $link_url,
-		'content' => '',
-		'hint' => $hint,
-		'class' => 'block-content-link',
-		'onclick' => $onclick
-	) );
-	
-	return $html;
-}
-
-/*
-**   administer_build_ad_flash_flv_code ( $args )
-**
-**   Returns flash video banner html from supplied arguments.
-*/
-function administer_build_ad_flash_flv_code( $args ) {
-	$defaults = array(
-		'id' => rand(),
-		'title' => '',
-		'src' => '',
-		'link_url' => '',
-		'width' => '',
-		'height' => '',
-		'hint' => '',
-		'onload' => '',
-		'onclick' => '',
-	);
-	$args = wp_parse_args( $args, $defaults );
-	extract( $args );
-	
-	if ( empty( $src ) )
-		return '';
-		
-	$onload = esc_js( $onload );
-	$onclick = esc_js( $onclick );
-		
-	$tag_id = 'flvplayer' . $id;
-	$flowplayer_path = plugins_url( 'script/flowplayer/flowplayer.swf', __FILE__ ); ;
-	$html = "<div id='{$tag_id}' style='width:{$width};height:{$height}'></div><script type='text/javascript' language='JavaScript'>flowplayer('flvplayer$id', '$flowplayer_path', { clip: { url: '$src', autoPlay: true, autoBuffering: true, linkUrl: '$link_url', linkWindow: '_blank' }, plugins: { controls: null }, buffering: false, onLoad: function() { $onload }, onBeforeClick: function() { $onclick }, onFinish: function() { this.stop(); this.play(); }, onBeforePause: function() { return false; } });</script>";
-
-	$html .= administer_build_ad_link_code( array(
-		'id' => $id,
-		'href' => $link_url,
-		'content' => '',
-		'hint' => $hint,
-		'class' => 'block-content-link',
-		'onclick' => $onclick
-	) );
-	
-	return $html;
-}
-
-
 
 /*
 **   administer_build_ad_mp4_code ( $args )
@@ -875,41 +788,29 @@ function administer_build_ad_mp4_code( $args ) {
 	
 	if ( empty( $src ) )
 		return '';
-		
-	$onload = esc_js( $onload );
-	$onclick = esc_js( $onclick );
-				
+
+	$style = 'vertical-align: middle;';
+	if ( $link_url ) {
+		$onclick .= " window.open(\"{$link_url}\", \"_blank\"); arguments[0].preventDefault();";
+		$style .= ' cursor: pointer;';
+	}
+
+	$onclick = $onclick ? "onclick='{$onclick}'" : '';
+	$onload = $onload ? "onload='{$onload}'" : '';
+	$title = $hint ? "title='{$hint}'" : '';
+	$alt = $hint ? "alt='{$hint}'" : '';
+	$width = $width ? "width='{$width}'" : '';
+	$height = $height ? "height='{$height}'" : '';
+	$style = $style ? "style='{$style}'" : '';
+
 	$tag_id = 'mp4ad' . $id;
-	$classid = 'clsid:02bf25d5-8c17-4b23-bc80-d3488abddc6b';
-	$codebase = 'http://www.apple.com/qtactivex/qtplugin.cab';
-	$pluginspage = 'http://www.apple.com/quicktime/download';
 	$html =
-	"<video id='{$tag_id}' width='{$width}' height='{$height}' controls autoplay loop muted playsinline preload='none' style='vertical-align: middle;'>
-		<!-- MP4 must be first for iPad! -->
-		<source src='{$src}' type='video/mp4' /><!-- WebKit video    -->
-		<!-- fallback to Flash: -->
-		<object classid='{$classid}' codebase='{$codebase}' width='{$width}' height='{$height}' type='application/x-shockwave-flash' data='{$src}'>
-			<!-- Firefox uses the `data` attribute above, IE/Safari uses the param below -->
-			<param name='src' value='{$src}' />
-			<param name='movie' value='{$src}' />
-			<param name='flashvars' value='file={$src}' />
-			<param name='autoplay' value='true' />
-			<param name='loop' value='true' />
-			<param name='mute' value='true' />
-			<param name='controls' value='true' />
-			<embed src='{$src}' type='image/x-macpaint' pluginspage='{$pluginspage}' width='{$width}' height='{$height}' autoplay='true' loop='true' mute='true'></embed>
-		</object>
+	"<video id='{$tag_id}' {$width} {$height} {$style} {$onclick} {$onload}
+		{$title} {$alt} controls autoplay loop muted playsinline preload='none'>
+		<!-- MP4 must be first for iPad! --> 
+		<source src='{$src}' type='video/mp4' />
 	</video>";
 
-	$html .= administer_build_ad_link_code( array(
-		'id' => $id,
-		'href' => $link_url,
-		'content' => '',
-		'hint' => $hint,
-		'class' => 'block-content-link',
-		'onclick' => $onclick
-	) );
-	
 	return $html;
 }
 
@@ -984,11 +885,10 @@ function administer_build_code( $args ) {
 		
 		$onload = '';
 		$onclick = '';
-		$title = esc_js( $title );
-		if ( ( get_option('administer_google_analytics') == 'true' ) && ( $title ) ) {
-			//$onload .= esc_js( administer_get_ga_tracking_code( 'Advertisement', 'Impression', $title ) ); // Commented out because of exceeding collection limits on Google Analytics account
-			$onclick .= esc_js( administer_get_ga_tracking_code( 'Advertisement', 'Click', $title, 1, true ) );
-		}
+		/*if ( ( get_option('administer_google_analytics') == 'true' ) && ( $title ) ) {
+			//$onload .= administer_get_ga_tracking_code( 'Advertisement', 'Impression', $title ); // Commented out because of exceeding collection limits on Google Analytics account
+			$onclick .= administer_get_ga_tracking_code( 'Advertisement', 'Click', $title, 1, true );
+		}*/
 	
 		$args = array (
 			'id' => $id,
@@ -1006,14 +906,6 @@ function administer_build_code( $args ) {
 		
 		$ext = strtolower( pathinfo( parse_url( $ad_media_url, PHP_URL_PATH ), PATHINFO_EXTENSION ) );
 		switch ( $ext ) {
-			case 'swf':
-				$code = administer_build_ad_flash_swf_code( $args );
-				break;
-			
-			case 'flv':
-				$code = administer_build_ad_flash_flv_code( $args );
-				break;
-			
 			case 'mp4':
 				$code = administer_build_ad_mp4_code( $args );
 				break;
@@ -1134,10 +1026,18 @@ if ( !function_exists( 'administer_get_display_code' ) ) {
 					$code = $position['before'] . $code . $position['after'];
 				} 
 			
+				$track_stats = '';
+				if ( get_option('administer_google_analytics') == 'true' ) {
+					$id = esc_attr($ad['id']);
+					$title = esc_attr($ad['title']);
+					$pos = esc_attr($position['position']);
+					$track_stats = "administer_track_stats=true data-id='{$id}' data-title='{$title}' data-position='{$pos}'";
+				}
+
 				// Add default ad wrapping
 				$class = isset( $position['class'] ) ? $position['class'] : '';
 				$class .= ( $key === 0 ) ? ' first-ad' : '';
-				$default_wrapper_before = "<div id='administer-ad-{$ad['id']}' class='administer-ad'>";
+				$default_wrapper_before = "<div id='administer-ad-{$ad['id']}' class='administer-ad' {$track_stats}>";
 				$default_wrapper_after = "</div>";
 				$code = $default_wrapper_before . $code . $default_wrapper_after;
 				$code_blocks[] = $code;
@@ -1334,7 +1234,7 @@ const GOOGLE_ADSENSE_AD_SLOT_IDS = array (
 	'Home Headline Banner' => '9662099347',
 	'Home Logo Banner' => '5646832712',
 	'Home Menu Banner' => '2578720201',
-	'Home Side Banner' => '2441545879',
+	//'Home Side Banner' => '2441545879',
 	'Home Side Banner 1' => '3517719118',
 	'Home Side Banner 2' => '6306475552',
 	'Home Side Banner 3' => '1786939759',
@@ -1403,7 +1303,7 @@ function administer_google_adsense_script() {
 	if ( ! administer_google_adsense_allowed() ) return FALSE;
 ?>	
 	<!-- Google Adsense -->
-	<script data-ad-client="<?php echo GOOGLE_ADSENSE_CLIENTID; ?>" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+	<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6732730031512336" crossorigin="anonymous"></script>
 <?php	
 }
 
@@ -1443,7 +1343,7 @@ function administer_google_adsense_display_position( $position ) {
 		$code = administer_get_google_adsense_code( $position, $ad_slot_id, $width, $height, $full_width_responsive );
 		if ( $code ) {
 			$class = isset( $positions[$position]['class'] ) ? $positions[$position]['class'] : '';
-			$before = "<div class='adsense-container {$class}'>";
+			$before = "<div id='position-{$position}' class='adsense-container {$class}'>";
 			$after = "</div>";
 			$result = $before . $code . $after;
 		}
@@ -1468,10 +1368,7 @@ function administer_get_google_adsense_code( $position, $ad_slot_id, $width = 0,
 			$result .= ' data-full-width-responsive="true" ';
 	}
 	else {
-		$result .= 
-			'style="display:block"
-			data-full-width-responsive="true"
-			data-ad-format="auto" ';
+		$result .= 'style="display:block" data-full-width-responsive="true"	data-ad-format="auto" ';
 	}
 	$result .= '
 		data-ad-client="' . GOOGLE_ADSENSE_CLIENTID . '"

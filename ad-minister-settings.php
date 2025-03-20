@@ -119,7 +119,7 @@
 			 <tr>
 			 	<th scope="row" valign="top"><?php _e('Google Analytics', 'ad-minister'); ?></th>
 			 	<td>
-					<input type="checkbox" id="administer_google_analytics" name="administer_google_analytics" <?php if (get_option('administer_google_analytics') == 'true') echo ' checked="checked"'; ?> /> <label for="administer_google_analytics"><?php _e('Log content clicks through Google Analytics?', 'ad-minister'); ?></label>
+					<input type="checkbox" id="administer_google_analytics" name="administer_google_analytics" <?php if (get_option('administer_google_analytics') == 'true') echo ' checked="checked"'; ?> /> <label for="administer_google_analytics"><?php _e('Log content clicks and impressions through Google Analytics?', 'ad-minister'); ?></label>
 			 	</td>
 			 </tr>
 			 <tr>

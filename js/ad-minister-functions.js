@@ -29,6 +29,81 @@
 	});
 })(jQuery);
 
+(function ($) {
+	$(document).ready(function() {
+		const observer = new IntersectionObserver((entries) => {
+			entries.forEach((entry) => {
+				if (entry.isIntersecting) {
+					administer_ad_impression(entry.target);
+					// Unobserve the target, so the callback doesn't fire again
+					observer.unobserve(entry.target);
+				}
+			});
+		}, { threshold: 0.5 });
+	
+		const ad_images = document.querySelectorAll(".administer-ad[administer_track_stats] img.administer-image");
+		ad_images.forEach(async (img) => {
+			await whenImageLoaded(img);
+			observer.observe(img);
+		});
+
+		const ad_links = document.querySelectorAll(".administer-ad[administer_track_stats] a.administer-adlink");
+		ad_links.forEach((link) => {
+			link.addEventListener('click', () => administer_ad_click(link));
+		});
+	});
+
+	function getAdElement(el) {
+		if (el.classList.contains("administer-ad")) return el;
+		
+		while (el && el.parentNode) {
+		  el = el.parentNode;
+		  if (el.classList.contains("administer-ad")) {
+			return el;
+		  }
+		}
+	  
+		return null;
+	}
+
+	async function whenImageLoaded(img) {
+		return new Promise((resolve, reject) => {
+			if (img.complete) {
+				resolve();
+			} else {
+				img.onload = () => resolve();
+				img.onerror = reject;
+			}
+		});
+	}
+
+	function administer_ad_click(element) {
+		administer_ad_event('administer_ad_click', element);
+	}
+	
+	function administer_ad_impression(element) {
+		administer_ad_event('administer_ad_impression', element);
+	}
+
+	function administer_ad_event(eventName, element) {
+		if (typeof(gtag) == 'function') {
+			var ad = getAdElement(element);
+			if (ad) {
+				var id = ad.dataset.id;
+				var title = ad.dataset.title;
+				var position = ad.dataset.position;
+				if (id && title && position) {
+					var params = {
+						'ad_id': id,
+						'ad_title': title,
+						'ad_position': position
+					};
+					gtag('event', eventName, params);
+				}
+			}
+		}
+	}
+})(jQuery);
 
 // tCycle Functionality
 /*! tCycle (c) 2013 M.Alsup MIT/GPL 20131130 */

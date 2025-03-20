@@ -330,10 +330,15 @@ li a.ad-almost-expired:hover {
 
 /** Rotating Banners **/
 .tcycle .administer-ad { 
-	display: none 
+	display: none;
 }
 
 .tcycle .administer-ad.first-ad,
 .tcycle .administer-ad:first-child { 
-	display: block 
+	display: block;
+}
+
+.administer-ad.first-ad .administer-lazy-load, 
+.administer-ad:first-child .administer-lazy-load { 
+	display: none;
 }
