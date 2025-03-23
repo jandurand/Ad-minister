@@ -1,9 +1,18 @@
 <?php
 function administer_position_template ($position = array(), $nbr = 0) {
-	$key  = $position['position']; // p2m_meta('position_key_' . $nbr);
-	$desc = $position['description']; //p2m_meta('position_desc_' . $nbr);
-	$rotating = ( ( $position['rotate'] == 'true' ) && ( $position['rotate_time'] ) ) ? 'Yes (' . $position['rotate_time'] . 's)' : 'No'; 
-	
+	$key  = $position['position'] ?: '';
+	$type = $position['type'] ?: '';
+	$desc = $position['description'] ?: '';
+	$class = $position['class'] ?: '';
+	$rotate = $position['rotate'] ?: '';
+	$rotate_time = $position['rotate_time'] ?: '';
+	$rotating = ( ( $rotate == 'true' ) && $rotate_time ) ? 'Yes (' . $rotate_time . 's)' : 'No'; 
+	$google_adsense_id = esc_html( $position['google_adsense_id'] ?: '' );
+	$google_adsense_active = $position['google_adsense_active'] ?: 'false';
+	if ( $google_adsense_id && ( $google_adsense_active != 'true' ) ) {
+		$google_adsense_id = '<span style="color: red">' . $google_adsense_id . ' (Inactive)</span>';
+	}
+
 	// Set up css formatting
 	$class =  ($nbr % 2) ? '' : 'alternate';
 	$html = '<tr class="%class%">';
@@ -11,8 +20,9 @@ function administer_position_template ($position = array(), $nbr = 0) {
 	$html .= '<td style="white-space: nowrap;">' . esc_html( $key ) . '</td>';
 	$html .= '<td>' . esc_html( $desc ) . '</td>';
 	//$html .= '<td>' . esc_html($position['before']) . ' ' . esc_html($position['after']) . '</td>';
-	$html .= '<td>' . esc_html( $position['class'] ) . '</td>';
+	$html .= '<td>' . esc_html( $class ) . '</td>';
 	$html .= '<td>' . esc_html( $rotating ) . '</td>';
+	$html .= '<td>' . $google_adsense_id . '</td>';
 	$html .= '<td><a href="%url_edit%">' . __('Edit', 'ad-minister') . '</a> | <a href="%url_remove%">' . __('Remove', 'ad-minister') . '</a></td>';
 	$html .= '</tr>';
 
@@ -52,10 +62,14 @@ function administer_position_template ($position = array(), $nbr = 0) {
 				$positions[$name]['class'] = stripslashes( administer_get_post_var( 'class' ) );
 				$positions[$name]['rotate'] = stripslashes( administer_get_post_var( 'rotate' ) ) ? 'true' : 'false';
 				$positions[$name]['rotate_time'] = ( administer_get_post_var( 'rotate_time' ) ) ? stripslashes( administer_get_post_var( 'rotate_time' ) ) : $rotate_time_default;
+				$positions[$name]['google_adsense_id'] = stripslashes( trim( administer_get_post_var( 'google_adsense_id' ) ) );
+				$positions[$name]['google_adsense_active'] = ( administer_get_post_var( 'google_adsense_active' ) ) ? 'true' : 'false';
 				if ( ! $positions[$name]['type'] ) $positions[$name]['type'] = 'widget';
 				administer_update_positions( $positions );
 				$_GET['key'] = $positions[$name]['position'];
 				echo '<div id="message" class="updated fade"><p><strong>' . __('Position saved.') . '</strong></p></div>';
+
+				do_action( 'administer_edit_position', $positions[$name] );
 			} 
 		}
 	}
@@ -118,9 +132,22 @@ function administer_position_template ($position = array(), $nbr = 0) {
 				$positions[$key] = $position;
 				$positions_modified = true;
 			}
-					
+			
+			if (empty($position['google_adsense_id'])) {
+				$google_adsense_id = administer_google_adsense_ad_slot_id( $position['position'] );
+				if ($google_adsense_id) {
+					$position['google_adsense_id'] = $google_adsense_id;
+					if (empty($position['google_adense_active'])) {
+						$position['google_adsense_active'] = 'true';
+					}
+					$positions[$key] = $position;
+					$positions_modified = true;
+				}
+			}
+
 			if (empty($position['type'])) {
 				$position['type'] = 'widget';
+				$positions[$key] = $position;
 				$positions_modified = true;
 			}
 			
@@ -141,7 +168,8 @@ function administer_position_template ($position = array(), $nbr = 0) {
 	<?php 
 	if ( administer_get_query_var( 'action' ) == 'edit' ) { 
 		$position = ( $key = $_GET['key'] ) ? $positions[$key] : array();
-		$checked_rotate = ( $position['rotate'] == 'true' ) ? 'checked="checked"' : ''; 
+		$checked_rotate = ( $position['rotate'] == 'true' ) ? 'checked="checked"' : '';
+		$checked_google_adsense_active = ( $position['google_adsense_active'] == 'true' ) ? 'checked="checked"' : '';
 	?>
 
 		<h3><?php _e('Create/edit position', 'ad-minister'); ?></h3>
@@ -186,6 +214,14 @@ function administer_position_template ($position = array(), $nbr = 0) {
 					<th scope="row" valign="top"><?php _e('Rotation Delay'); ?></th>
 					<td><input type="number" style="width: 55px;" id="rotate_time" name="rotate_time" min="1" value="<?php echo format_to_edit( $rotate_time ); ?>"> <span class="info">(<?php _e('Time between ad rotations in seconds', 'ad-minister'); ?>)</span></td>	
 				</tr>
+				<tr id="positions_edit_google_adense_id">
+					<th scope="row" valign="top"><?php _e('Google Adsense ID'); ?></th>
+					<td>
+						<input type="text" name="google_adsense_id" id="google_adsense_id" size="15" value="<?php echo format_to_edit($position['google_adsense_id']); ?>" /> 
+						<input type="checkbox" stye="margin-left: 1.5rem" name="google_adsense_active" id="google_adsense_active" value="true" <?php echo $checked_google_adsense_active; ?> /> 
+						<span class="info">(<?php _e('Allow Google Adsense ads?', 'ad-minister'); ?>)</span>
+					</td>	
+				</tr>
 			</table>
 
 			<p><input type="submit" class="button-primary" name="save" value="<?php _e('Save position'); ?>" /></p>
@@ -222,7 +258,7 @@ function administer_position_template ($position = array(), $nbr = 0) {
 				<form action='<?php echo administer_get_page_url( "positions" ); ?>' method='POST'>
 					<table width="100%">
 						<tr>
-							<td><input type='button' class="button" value='<?php _e('No', 'ad-minister'); ?>' onclick="self.location='<?php echo administer_get_page_url( "positions" ); ?>';" /></td>
+							<td><input type='button' class="button" value='<?php _e('No', 'ad-minister'); ?>' onclick="self.location='<?php echo administer_get_page_url( 'positions' ); ?>';" /></td>
 							<td class="textright"><input type='submit' class="button" value='<?php _e('Yes', 'ad-minister'); ?>' /></td>
 						</tr>
 					</table>
@@ -276,6 +312,7 @@ function administer_position_template ($position = array(), $nbr = 0) {
 							<!--<th class="templateFunctions" scope="col" colspan="1"><?php _e('Wrapper', 'ad-minister'); ?></th>-->
 							<th class="templateClasses" scope="col" colspan="1"><?php _e('Classes', 'ad-minister'); ?></th>
 							<th class="templateRotating" scope="col"><?php _e('Rotating', 'ad-minister'); ?></th>
+							<th class="templateGoogleAdsenseID" scope="col"><?php _e('Google Adsense ID', 'ad-minister'); ?></th>
 							<th class="templatePositionsActions" scope="col"><?php _e('Actions', 'ad-minister'); ?></th>
 						</tr>
 					</thead>
@@ -311,6 +348,7 @@ function administer_position_template ($position = array(), $nbr = 0) {
 								<!--<th class="templateFunctions" scope="col" colspan="1"><?php _e('Wrapper', 'ad-minister'); ?></th>-->
 								<th class="templateClasses" scope="col" colspan="1"><?php _e('Classes', 'ad-minister'); ?></th>
 								<th class="templateRotating" scope="col"><?php _e('Rotating', 'ad-minister'); ?></th>
+								<th class="templateGoogleAdsenseID" scope="col"><?php _e('Google Adsense ID', 'ad-minister'); ?></th>
 								<th class="templatePositionsActions" scope="col"><?php _e('Actions', 'ad-minister'); ?></th>
 							</tr>
 						</thead>

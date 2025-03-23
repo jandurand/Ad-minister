@@ -932,12 +932,12 @@ function administer_build_code( $args ) {
 function administer_build_code_callback() {
 	$ad = array(
 		'ad_mode' => 'mode_basic',
-		'ad_media_url' => $_POST['ad_media_url'],
-		'ad_size' => $_POST['ad_size'],
-		'ad_hint' => $_POST['ad_hint'],
-		'ad_link_url' => $_POST['ad_link_url'],
-		'ad_audio_url' => $_POST['ad_audio_url'],
-		'code' => $_POST['code'],
+		'ad_media_url' => $_POST['ad_media_url'] ?: '',
+		'ad_size' => $_POST['ad_size'] ?: '',
+		'ad_hint' => $_POST['ad_hint'] ?: '',
+		'ad_link_url' => $_POST['ad_link_url'] ?: '',
+		'ad_audio_url' => $_POST['ad_audio_url'] ?: '',
+		'code' => $_POST['code'] ?: '',
 	);
 	
 	echo administer_build_code( $ad );
@@ -1316,7 +1316,7 @@ function administer_google_adsense_display_position( $position ) {
 	
 	$result = FALSE;
 
-	$ad_slot_id = administer_google_adsense_ad_slot_id( $position );
+	/*$ad_slot_id = administer_google_adsense_ad_slot_id( $position );
 	if ( $ad_slot_id === FALSE ) {
 		foreach ( GOOGLE_ADSENSE_GENERAL_POSITIONS as $pos ) {
 			if ( strpos( $position, $pos ) === 0 ) {
@@ -1325,7 +1325,11 @@ function administer_google_adsense_display_position( $position ) {
 				break;
 			}
 		}
-	}
+	}*/
+
+	$positions = administer_get_positions();
+	$allow_adsense = isset( $positions[$position]['google_adsense_active'] ) && ( $positions[$position]['google_adsense_active'] == 'true' );
+	$ad_slot_id = $allow_adsense && isset( $positions[$position]['google_adsense_id'] ) ? $positions[$position]['google_adsense_id'] : FALSE;
 
 	if ( $ad_slot_id ) {
 		$width = 0;
